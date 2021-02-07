@@ -23,37 +23,39 @@
                     <th scope="col">Data</th>
                     <th scope="col">Historico</th>
                     <th scope="col">Valor</th>
+                    <th scope="col">Categoria</th>
                 </tr>
                 </thead>
                 <tbody>
-                <tr th:each="extract, i : ${extracts}">
+                <tr th:each="transaction, i : ${transactions}">
                     <th scope="row" th:text="${i.index + 1}"></th>
-                    <td th:text="${extract.data}"></td>
-                    <td th:text="${extract.historico}"></td>
-                    <td th:text="${#numbers.formatDecimal(extract.valor, 2, 2, 'COMMA')}" align="RIGHT"></td>
+                    <td th:text="${transaction.date}"></td>
+                    <td th:text="${transaction.description}"></td>
+                    <td th:text="${#numbers.formatDecimal(transaction.value, 2, 2, 'COMMA')}" align="RIGHT"></td>
+                    <td th:text="${transaction.category}" align="RIGHT"></td>
                 </tr>
                 </tbody>
             </table>
 
             <div>
                 <strong>Contas Rio:</strong>
-                <span th:text="${#numbers.formatDecimal(somaRio, 2, 2, 'COMMA')}"></span>
+                <span th:text="${#numbers.formatDecimal(amountRio, 2, 2, 'COMMA')}"></span>
             </div>
             <div>
                 <strong>Contas Saquarema:</strong>
-                <span th:text="${#numbers.formatDecimal(somaSaquarema, 2, 2, 'COMMA')}"></span>
+                <span th:text="${#numbers.formatDecimal(amountSaquarema, 2, 2, 'COMMA')}"></span>
             </div>
             <div>
                 <strong>Contas Mercado:</strong>
-                <span th:text="${#numbers.formatDecimal(somaMercado, 2, 2, 'COMMA')}"></span>
+                <span th:text="${#numbers.formatDecimal(amountSupermarket, 2, 2, 'COMMA')}"></span>
             </div>
             <div>
                 <strong>Contas Débito:</strong>
-                <span th:text="${#numbers.formatDecimal(somaPessoal, 2, 2, 'COMMA')}"></span>
+                <span th:text="${#numbers.formatDecimal(amountPersonal, 2, 2, 'COMMA')}"></span>
             </div>
             <div>
                 <strong>Contas Cartão:</strong>
-                <span th:text="${#numbers.formatDecimal(somaCartao, 2, 2, 'COMMA')}"></span>
+                <span th:text="${#numbers.formatDecimal(amountCreditCard, 2, 2, 'COMMA')}"></span>
             </div>
 
         </div>
