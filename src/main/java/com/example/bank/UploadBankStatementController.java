@@ -1,21 +1,18 @@
 package com.example.bank;
 
-import com.opencsv.bean.CsvToBean;
-import com.opencsv.bean.CsvToBeanBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 @Controller
-public class UploadController {
+public class UploadBankStatementController {
 
     @Autowired
-    private ExtractService extractService;
+    private BankStatementService bankStatementService;
 
     @GetMapping("/")
     public String index() {
@@ -32,17 +29,17 @@ public class UploadController {
         } else {
             // parse CSV file to create a list of `Extract` objects
             try {
-                List<Extract> extracts;
-                extracts = extractService.read(file);
+                List<Transaction> transactions;
+                transactions = bankStatementService.read(file);
 
                 // save users list on model
-                model.addAttribute("extracts", extracts);
+                model.addAttribute("transactions", transactions);
                 model.addAttribute("status", true);
-                model.addAttribute("somaRio", extractService.categorizeRio(extracts));
-                model.addAttribute("somaSaquarema", extractService.categorizeSaquarema(extracts));
-                model.addAttribute("somaMercado", extractService.categorizeMercado(extracts));
-                model.addAttribute("somaPessoal", extractService.categorizePessoal(extracts));
-                model.addAttribute("somaCartao", extractService.categorizeCartao(extracts));
+                model.addAttribute("amountRio", bankStatementService.categorizeRio(transactions));
+                model.addAttribute("amountSaquarema", bankStatementService.categorizeSaquarema(transactions));
+                model.addAttribute("amountSupermarket", bankStatementService.categorizeSupermarket(transactions));
+                model.addAttribute("amountPersonal", bankStatementService.categorizePersonal(transactions));
+                model.addAttribute("amountCreditCard", bankStatementService.categorizeCreditCard(transactions));
 
                 // TODO: save users in DB?
 
