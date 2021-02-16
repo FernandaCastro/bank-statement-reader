@@ -5,6 +5,7 @@
     <title>Title</title>
 </head>
 <body>
+<h1>OWNER: ${owner}</h1>
 <div class="container py-5">
     <div class="row">
         <div class="col-10 mx-auto">
@@ -27,7 +28,7 @@
                 </tr>
                 </thead>
                 <tbody>
-                <tr th:each="transaction, i : ${transactions}">
+                <tr th:each="transaction, i : ${aldaTransactions}">
                     <th scope="row" th:text="${i.index + 1}"></th>
                     <td th:text="${transaction.date}"></td>
                     <td th:text="${transaction.description}"></td>

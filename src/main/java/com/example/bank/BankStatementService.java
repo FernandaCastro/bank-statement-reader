@@ -26,71 +26,75 @@ public class BankStatementService {
     @Value("${transaction.category.creditcard}")
     private String creditCard;
 
-    public List<Transaction> read(MultipartFile file) throws Exception {
+    public List<AldaTransaction> read(MultipartFile file, String owner) throws Exception {
+
+        Class transaction = Transaction.class;
+        if (owner.equalsIgnoreCase("alda"))
+            transaction = AldaTransaction.class;
 
         // parse CSV file to create a list of `User` objects
         Reader reader = new BufferedReader(new InputStreamReader(file.getInputStream(), "ISO-8859-1"));
 
         // create csv bean reader
-        CsvToBean<Transaction> csvToBean = new CsvToBeanBuilder<Transaction>(reader)
-                .withType(Transaction.class)
+        CsvToBean<AldaTransaction> csvToBean = new CsvToBeanBuilder<AldaTransaction>(reader)
+                .withType(transaction)
                 .withIgnoreLeadingWhiteSpace(true)
                 .build();
 
-        // convert `CsvToBean` object to list of users
+        // convert `CsvToBean` object to list of transactions
         return csvToBean.parse();
     }
 
-    public double categorizeRio(List<Transaction> transactions){
+    public double categorizeRio(List<AldaTransaction> aldaTransactions){
         List<String> rioProperties = Arrays.asList(rio.trim().split(",").clone());
 
-        return transactions.stream()
+        return aldaTransactions.stream()
                 .filter(p -> p.getCategory() == null || p.getCategory().isBlank())
                 .filter(p -> this.contains(p.getDescription(), rioProperties))
                 .peek(p -> p.setCategory("RIO"))
-                .mapToDouble(Transaction::getValue).sum();
+                .mapToDouble(AldaTransaction::getValue).sum();
     }
 
-    public double categorizeSaquarema(List<Transaction> transactions){
+    public double categorizeSaquarema(List<AldaTransaction> aldaTransactions){
         List<String> saquaremaProperties = Arrays.asList(saquarema.trim().split(",").clone());
 
-        return transactions.stream()
+        return aldaTransactions.stream()
                 .filter(p -> p.getCategory() == null || p.getCategory().isBlank())
                 .filter(p -> this.contains(p.getDescription(), saquaremaProperties))
                 .peek(p -> p.setCategory("SAQUAREMA"))
-                .mapToDouble(Transaction::getValue).sum();
+                .mapToDouble(AldaTransaction::getValue).sum();
     }
 
-    public double categorizeSupermarket(List<Transaction> transactions){
+    public double categorizeSupermarket(List<AldaTransaction> aldaTransactions){
         List<String> supermarketProperties = Arrays.asList(supermarket.trim().split(",").clone());
 
-        return transactions.stream()
+        return aldaTransactions.stream()
                 .filter(p -> p.getCategory() == null || p.getCategory().isBlank())
                 .filter(p -> this.contains(p.getDescription(), supermarketProperties))
                 .peek(p -> p.setCategory("MERCADO"))
-                .mapToDouble(Transaction::getValue).sum();
+                .mapToDouble(AldaTransaction::getValue).sum();
     }
 
-    public double categorizePersonal(List<Transaction> transactions){
+    public double categorizePersonal(List<AldaTransaction> aldaTransactions){
         List<String> personalProperties = Arrays.asList(personal.trim().split(",").clone());
         List<String> supermarketProperties = Arrays.asList(supermarket.trim().split(",").clone());
 
-        return transactions.stream()
+        return aldaTransactions.stream()
                 .filter(p -> p.getCategory() == null || p.getCategory().isBlank())
                 .filter(p -> this.contains(p.getDescription(), personalProperties))
                 .filter(p -> !this.contains(p.getDescription(), supermarketProperties))
                 .peek(p -> p.setCategory("PESSOAL"))
-                .mapToDouble(Transaction::getValue).sum();
+                .mapToDouble(AldaTransaction::getValue).sum();
     }
 
-    public double categorizeCreditCard(List<Transaction> transactions){
+    public double categorizeCreditCard(List<AldaTransaction> aldaTransactions){
         List<String> creditCardProperties = Arrays.asList(creditCard.trim().split(",").clone());
 
-        return transactions.stream()
+        return aldaTransactions.stream()
                 .filter(p -> p.getCategory() == null || p.getCategory().isBlank())
                 .filter(p -> this.contains(p.getDescription(), creditCardProperties))
                 .peek(p -> p.setCategory("CARTAO"))
-                .mapToDouble(Transaction::getValue).sum();
+                .mapToDouble(AldaTransaction::getValue).sum();
     }
 
     public boolean contains(String description, List<String> categoryProperties){
