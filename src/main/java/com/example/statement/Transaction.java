@@ -1,14 +1,9 @@
-package com.example.bank;
+package com.example.statement;
 
-import com.opencsv.bean.CsvBindByName;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.format.annotation.NumberFormat;
-import org.springframework.stereotype.Component;
 
-@Component
-public class AldaTransaction extends Transaction{
+public class Transaction{
+
 
     /*"Data","Dependencia Origem","HistÛrico","Data do Balancete","N˙mero do documento","Valor",
       "30/11/2020","","Saldo Anterior","","0","1814.10",
@@ -16,29 +11,31 @@ public class AldaTransaction extends Transaction{
       "03/12/2020","","BenefÌcio INSS","","196324558","4394.95",
     */
 
-    @CsvBindByName(column = "Data")
+    //@CsvBindByName(column = "data")
     private String date;
 
-    @CsvBindByName(column = "Histórico")
+    //@CsvBindByName(column = "histórico")
     private String description;
 
-    @CsvBindByName(column = "Valor")
+    //@CsvBindByName(column = "valor")
     @NumberFormat(pattern = "#.##")
     private double value;
 
-    @CsvBindByName(column = "Número do documento")
+    //@CsvBindByName(column = "número do documento")
     private String id;
 
-    public AldaTransaction(){
-        super();
-    }
+    private String category;
 
-    public AldaTransaction(String date, String description, double value, String id){
+    public Transaction(){}
+
+    public Transaction(String date, String description, Double value, String id){
             this.date = date;
             this.description = description;
-            this.value = value;
             this.id = id;
+            this.value = value;
     }
+
+    public String getCategory() { return category; }
 
     public String getDate() { return date; }
 
@@ -48,6 +45,8 @@ public class AldaTransaction extends Transaction{
 
     public String getId() { return id; }
 
+    public void setCategory(String category) { this.category = category; }
+
     public void setDate(String date) { this.date = date; }
 
     public void setDescription(String description) { this.description = description; }
@@ -55,5 +54,4 @@ public class AldaTransaction extends Transaction{
     public void setValue(double value) { this.value = value; }
 
     public void setId(String id) { this.id = id; }
-
 }

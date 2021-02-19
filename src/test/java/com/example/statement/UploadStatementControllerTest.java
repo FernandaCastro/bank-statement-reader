@@ -1,8 +1,7 @@
-package com.example.bank;
+package com.example.statement;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.http.MediaType;
@@ -18,11 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 */
 
 @WebMvcTest
-@EnableConfigurationProperties(value = StatementAldaProperties.class)
 public class UploadStatementControllerTest {
-
-    @Autowired
-    private StatementAldaProperties statementAldaProperties;
 
     //@Autowired
    // private WebApplicationContext webApplicationContext;
@@ -30,7 +25,10 @@ public class UploadStatementControllerTest {
     private MockMvc mockMvc;
 
     @SpyBean
-    private BankStatementService bankStatementService;
+    private StatementPropertiesHandle statementPropertiesHandle;
+
+    @SpyBean
+    private StatementService statementService;
 
     @Test
     public void testUploadCSVFile()

@@ -1,23 +1,19 @@
-package com.example.bank;
+package com.example.statement;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequestMapping(path = "/{owner}")
 public class UploadStatementController {
 
     @Autowired
-    private Environment env;
-
-    @Autowired
-    private BankStatementService bankStatementService;
+    private StatementService statementService;
 
     @GetMapping("/")
     public String index(@PathVariable String owner) {
@@ -35,17 +31,16 @@ public class UploadStatementController {
         } else {
             // parse CSV file to create a list of `Extract` objects
             try {
-                List<AldaTransaction> aldaTransactions;
-                aldaTransactions = bankStatementService.read(file, owner);
+
+                var transactions = statementService.read(file, owner);
 
                 // save users list on model
-                model.addAttribute("transactions", aldaTransactions);
+                model.addAttribute("transactions", transactions);
                 model.addAttribute("status", true);
-                model.addAttribute("amountRio", bankStatementService.categorizeRio(aldaTransactions));
-                model.addAttribute("amountSaquarema", bankStatementService.categorizeSaquarema(aldaTransactions));
-                model.addAttribute("amountSupermarket", bankStatementService.categorizeSupermarket(aldaTransactions));
-                model.addAttribute("amountPersonal", bankStatementService.categorizePersonal(aldaTransactions));
-                model.addAttribute("amountCreditCard", bankStatementService.categorizeCreditCard(aldaTransactions));
+
+                Map<String, Double> sumCategories = statementService.categorize(owner, transactions);
+
+                model.addAttribute("categories", sumCategories);
 
                 // TODO: save users in DB?
 

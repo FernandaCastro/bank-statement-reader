@@ -1,10 +1,10 @@
-package com.example.bank;
+package com.example.statement;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class BankApplicationTests {
+class BankStatementApplicationTests {
 
     @Test
     void contextLoads() {
