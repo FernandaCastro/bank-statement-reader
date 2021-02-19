@@ -1,4 +1,4 @@
-package com.example.bank;
+package com.example.statement;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -6,21 +6,23 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
+import java.util.Map;
 
 @Controller
-public class UploadBankStatementController {
+@RequestMapping(path = "/{owner}")
+public class UploadStatementController {
 
     @Autowired
-    private BankStatementService bankStatementService;
+    private StatementService statementService;
 
     @GetMapping("/")
-    public String index() {
+    public String index(@PathVariable String owner) {
         return "index";
     }
 
     @PostMapping("/upload-csv-file")
-    public String uploadCSVFile(@RequestParam("file") MultipartFile file, Model model) {
+    public String uploadCSVFile(@PathVariable String owner, @RequestParam("file") MultipartFile file, Model model) {
+        model.addAttribute("owner", owner);
 
         // validate file
         if (file.isEmpty()) {
@@ -29,17 +31,16 @@ public class UploadBankStatementController {
         } else {
             // parse CSV file to create a list of `Extract` objects
             try {
-                List<Transaction> transactions;
-                transactions = bankStatementService.read(file);
+
+                var transactions = statementService.read(file, owner);
 
                 // save users list on model
                 model.addAttribute("transactions", transactions);
                 model.addAttribute("status", true);
-                model.addAttribute("amountRio", bankStatementService.categorizeRio(transactions));
-                model.addAttribute("amountSaquarema", bankStatementService.categorizeSaquarema(transactions));
-                model.addAttribute("amountSupermarket", bankStatementService.categorizeSupermarket(transactions));
-                model.addAttribute("amountPersonal", bankStatementService.categorizePersonal(transactions));
-                model.addAttribute("amountCreditCard", bankStatementService.categorizeCreditCard(transactions));
+
+                Map<String, Double> sumCategories = statementService.categorize(owner, transactions);
+
+                model.addAttribute("categories", sumCategories);
 
                 // TODO: save users in DB?
 

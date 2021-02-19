@@ -1,14 +1,13 @@
-package com.example.bank;
+package com.example.statement;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class BankApplication {
+public class BankStatementApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(BankApplication.class, args);
+        SpringApplication.run(BankStatementApplication.class, args);
     }
 
 }

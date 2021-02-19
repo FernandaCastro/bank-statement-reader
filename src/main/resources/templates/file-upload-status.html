@@ -2,28 +2,29 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>Bank Statement Reader</title>
 </head>
 <body>
 <div class="container py-5">
     <div class="row">
         <div class="col-10 mx-auto">
-            <h1>File Upload Status</h1>
+            <h2 th:if="${!status}">File Upload Status</h2>
             <!--display error if any-->
             <div class="alert alert-danger" role="alert" th:if="${!status}">
                 <strong>Error:</strong>
                 <span th:text="${message}"></span>
             </div>
 
+            <h2 th:if="${status}">Bank Statement imported.</h2>
             <!--display users list-->
             <table class="table table-striped" th:if="${status}">
                 <thead>
                 <tr>
                     <th scope="col">#</th>
-                    <th scope="col">Data</th>
-                    <th scope="col">Historico</th>
-                    <th scope="col">Valor</th>
-                    <th scope="col">Categoria</th>
+                    <th scope="col">Date</th>
+                    <th scope="col">Description</th>
+                    <th scope="col">Value</th>
+                    <th scope="col">Category</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -36,28 +37,29 @@
                 </tr>
                 </tbody>
             </table>
-
-            <div>
-                <strong>Contas Rio:</strong>
-                <span th:text="${#numbers.formatDecimal(amountRio, 2, 2, 'COMMA')}"></span>
-            </div>
-            <div>
-                <strong>Contas Saquarema:</strong>
-                <span th:text="${#numbers.formatDecimal(amountSaquarema, 2, 2, 'COMMA')}"></span>
-            </div>
-            <div>
-                <strong>Contas Mercado:</strong>
-                <span th:text="${#numbers.formatDecimal(amountSupermarket, 2, 2, 'COMMA')}"></span>
-            </div>
-            <div>
-                <strong>Contas Débito:</strong>
-                <span th:text="${#numbers.formatDecimal(amountPersonal, 2, 2, 'COMMA')}"></span>
-            </div>
-            <div>
-                <strong>Contas Cartão:</strong>
-                <span th:text="${#numbers.formatDecimal(amountCreditCard, 2, 2, 'COMMA')}"></span>
-            </div>
-
+        </div>
+    </div>
+</div>
+<div class="container py-6">
+    <div class="row">
+        <div class="col-10 mx-auto">
+            <h3 th:if="${status}">Categories</h3>
+            <table class="table table-striped" th:if="${status}">
+                <thead>
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Category</th>
+                    <th scope="col">Total</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="category, i : ${categories}">
+                    <th scope="row" th:text="${i.index + 1}"></th>
+                    <td th:text="${category.key}"></td>
+                    <td th:text="${#numbers.formatDecimal(category.value, 2, 2, 'COMMA')}" align="RIGHT"></td>
+                </tr>
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
