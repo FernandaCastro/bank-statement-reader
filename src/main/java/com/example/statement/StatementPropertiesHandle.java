@@ -31,13 +31,6 @@ public class StatementPropertiesHandle {
                 }
             }
         }
-        /*
-        map.entrySet()
-                .stream()
-                .sorted(Map.Entry.<String, String>comparingByKey());
-
-         */
-
         return map;
     }
 }

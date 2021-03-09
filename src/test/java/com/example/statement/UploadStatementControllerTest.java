@@ -1,12 +1,18 @@
 package com.example.statement;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.context.WebApplicationContext;
+
+import java.util.Map;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -17,10 +23,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 */
 
 @WebMvcTest
+//@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 public class UploadStatementControllerTest {
 
     //@Autowired
-   // private WebApplicationContext webApplicationContext;
+    //private WebApplicationContext webApplicationContext;
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -46,9 +54,14 @@ public class UploadStatementControllerTest {
                 content.getBytes()
         );
 
-        //MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
-        mockMvc.perform(multipart("/alda/upload-csv-file").file(file))
-                .andExpect(status().isOk());
+        try {
+            //MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+            mockMvc.perform(multipart("/alda/upload-csv-file").file(file))
+                    .andExpect(status().isOk());
+
+        } catch (Exception e) {
+            Assertions.fail(e.getMessage());
+        }
     }
 
 }

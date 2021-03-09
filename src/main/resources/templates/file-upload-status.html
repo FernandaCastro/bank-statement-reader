@@ -30,9 +30,9 @@
                 <tbody>
                 <tr th:each="transaction, i : ${transactions}">
                     <th scope="row" th:text="${i.index + 1}"></th>
-                    <td th:text="${transaction.date}"></td>
+                    <td th:text="${transaction.transactionDate}"></td>
                     <td th:text="${transaction.description}"></td>
-                    <td th:text="${#numbers.formatDecimal(transaction.value, 2, 2, 'COMMA')}" align="RIGHT"></td>
+                    <td th:text="${#numbers.formatDecimal(transaction.transactionValue, 2, 2, 'COMMA')}" align="RIGHT"></td>
                     <td th:text="${transaction.category}" align="RIGHT"></td>
                 </tr>
                 </tbody>

@@ -42,6 +42,7 @@ public class UploadStatementController {
 
                 model.addAttribute("categories", sumCategories);
 
+                statementService.save(owner, file.getName(), transactions);
                 // TODO: save users in DB?
 
             } catch (Exception ex) {
