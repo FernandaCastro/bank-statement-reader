@@ -11,10 +11,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 public class StatementService {
@@ -25,7 +22,16 @@ public class StatementService {
     @Autowired
     private StatementPropertiesHandle statementPropertiesHandle;
 
-    public List<Transaction> read(MultipartFile file, String owner) throws Exception {
+    @Autowired(required = false)
+    private OwnerRepository ownerRepository;
+
+    @Autowired(required = false)
+    private StatementRepository statementRepository;
+
+    @Autowired(required = false)
+    private StatementTransactionRepository statementTransactionRepository;
+
+    public List<StatementTransaction> read(MultipartFile file, String owner) throws Exception {
 
         String[] transactionFields = env.getProperty("statement." + owner + ".transactionFields", String[].class);
         if (transactionFields == null || transactionFields.length == 0)
@@ -35,19 +41,22 @@ public class StatementService {
         Reader reader = new BufferedReader(new InputStreamReader(file.getInputStream(), "ISO-8859-1"));
 
         Map<String, String> mapping = new HashMap<String, String>();
-        mapping.put(transactionFields[0], "date");
+        mapping.put(transactionFields[0], "transactionDate");
         mapping.put(transactionFields[1], "description");
-        mapping.put(transactionFields[2], "id");
-        mapping.put(transactionFields[3], "value");
+        mapping.put(transactionFields[2], "documentId");
+        mapping.put(transactionFields[3], "transactionValue");
 
-        HeaderColumnNameTranslateMappingStrategy<Transaction> strategy =
-                new HeaderColumnNameTranslateMappingStrategy<Transaction>();
-        strategy.setType(Transaction.class);
+        HeaderColumnNameTranslateMappingStrategy<StatementTransaction> strategy =
+                new HeaderColumnNameTranslateMappingStrategy<StatementTransaction>();
+        strategy.setType(StatementTransaction.class);
         strategy.setColumnMapping(mapping);
 
         // create csv bean builder
-        CsvToBean<Transaction> csvToBean = new CsvToBeanBuilder<Transaction>(reader)
+        CsvToBean<StatementTransaction> csvToBean = new CsvToBeanBuilder<StatementTransaction>(reader)
                 .withMappingStrategy(strategy)
+               // .withKeepCarriageReturn(true)
+               // .withQuoteChar('"')
+               // .withSeparator(',')
                 .withIgnoreLeadingWhiteSpace(true)
                 .build();
 
@@ -55,7 +64,7 @@ public class StatementService {
         return csvToBean.parse();
     }
 
-    public Map<String, Double> categorize(String owner, List<Transaction> aldaTransactions) throws Exception {
+    public Map<String, Double> categorize(String owner, List<StatementTransaction> transactions) throws Exception {
 
         Map<String, String> categories = statementPropertiesHandle.getCategories(owner);
         if (categories == null || categories.isEmpty())
@@ -66,18 +75,35 @@ public class StatementService {
             List<String> tags = Arrays.asList(categories.get(category).trim().toUpperCase().split("\\s*,\\s*").clone());
 
             sumCategories.put(category,
-                    aldaTransactions.stream()
+                    transactions.stream()
                             .filter(p -> p.getDescription() != null && !p.getDescription().isBlank())
                             .filter(p -> p.getCategory() == null || p.getCategory().isBlank())
                             .filter(p -> this.contains(p.getDescription(), tags))
                             .peek(p -> p.setCategory(category))
-                            .mapToDouble(Transaction::getValue).sum());
+                            .mapToDouble(StatementTransaction::getTransactionValue).sum());
         }
 
         return sumCategories;
     }
 
-    public boolean contains(String description, List<String> tags) {
+    public void save(String ownerId, String filename, List<StatementTransaction> transactions) throws Exception{
+        var ownerOptional = ownerRepository.findById(ownerId);
+        var owner = ownerOptional.get();
+
+        var statement = new Statement();
+        statement.setStartDate(transactions.get(0).getTransactionDate());
+        statement.setEndDate(transactions.get(transactions.size()-1).getTransactionDate());
+        statement.setFilename(filename);
+        statement.setOwnerId(owner.getId());
+        statement = statementRepository.save(statement);
+
+        for (StatementTransaction transaction:transactions) {
+            transaction.setStatementId(statement.getId());
+            statementTransactionRepository.save(transaction);
+        }
+    }
+
+    private boolean contains(String description, List<String> tags) {
         for (String tag : tags) {
             if (tag.startsWith("!")) {
                 tag = tag.replace("!", "");
