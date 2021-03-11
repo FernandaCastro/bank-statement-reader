@@ -17,8 +17,8 @@ public class StatementPropertiesHandle {
     @Autowired
     private Environment env;
 
-    public Map<String, String> getCategories(String owner) {
-        String categoryPrefix = "statement." + owner + ".category.";
+    public Map<String, String> getCategories(String filter) {
+        String categoryPrefix = "statement." + filter.toLowerCase() + ".category.";
         Map<String, String> map = new HashMap<>();
         if (env instanceof ConfigurableEnvironment) {
             for (PropertySource<?> propertySource : ((ConfigurableEnvironment) env).getPropertySources()) {

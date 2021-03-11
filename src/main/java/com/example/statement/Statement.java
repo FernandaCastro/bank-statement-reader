@@ -20,6 +20,8 @@ public class Statement {
 
     private String ownerId;
 
+    private String bankId;
+
     public Statement(){}
 
     public int getId() {
@@ -60,5 +62,13 @@ public class Statement {
 
     public void setOwnerId(String ownerId) {
         this.ownerId = ownerId;
+    }
+
+    public String getBankId() {
+        return bankId;
+    }
+
+    public void setBankId(String bankId) {
+        this.bankId = bankId;
     }
 }

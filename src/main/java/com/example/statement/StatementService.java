@@ -12,6 +12,8 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class StatementService {
@@ -31,11 +33,11 @@ public class StatementService {
     @Autowired(required = false)
     private StatementTransactionRepository statementTransactionRepository;
 
-    public List<StatementTransaction> read(MultipartFile file, String owner) throws Exception {
+    public List<StatementTransaction> read(Bank bank, MultipartFile file) throws Exception {
 
-        String[] transactionFields = env.getProperty("statement." + owner + ".transactionFields", String[].class);
+        String[] transactionFields = env.getProperty("statement." + bank.getId().toLowerCase() + ".transactionFields", String[].class);
         if (transactionFields == null || transactionFields.length == 0)
-            throw new Exception("Unable to find transaction fields for owner: " + owner);
+            throw new Exception("Unable to find transaction fields for bank: " + bank.getId());
 
         // parse CSV file to create a list of `User` objects
         Reader reader = new BufferedReader(new InputStreamReader(file.getInputStream(), "ISO-8859-1"));
@@ -64,11 +66,22 @@ public class StatementService {
         return csvToBean.parse();
     }
 
-    public Map<String, Double> categorize(String owner, List<StatementTransaction> transactions) throws Exception {
+    public Map<String, Double> categorize(Owner owner, Bank bank, List<StatementTransaction> transactions) throws Exception {
 
-        Map<String, String> categories = statementPropertiesHandle.getCategories(owner);
-        if (categories == null || categories.isEmpty())
-            throw new Exception("Unable to find categories for owner: " + owner);
+        var baseCategories = statementPropertiesHandle.getCategories(bank.getId());
+        var customCategories = statementPropertiesHandle.getCategories(owner.getId());
+        Map<String, String> categories = Stream.of(baseCategories, customCategories)
+                .flatMap(map -> map.entrySet().stream())
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (v1, v2) -> v1.equalsIgnoreCase(v2)
+                                ? v1
+                                : v1 + ", " + v2));
+
+
+        if (categories.isEmpty())
+            throw new Exception("Unable to find any category");
 
         Map<String, Double> sumCategories = new HashMap<>();
         for (String category : categories.keySet()) {
@@ -86,17 +99,16 @@ public class StatementService {
         return sumCategories;
     }
 
-    public void save(String ownerId, String filename, List<StatementTransaction> transactions) throws Exception{
-        var ownerOptional = ownerRepository.findById(ownerId);
-        var owner = ownerOptional.get();
-
+    public void save(Owner owner, Bank bank, String filename, List<StatementTransaction> transactions) throws Exception{
         var statement = new Statement();
         statement.setStartDate(transactions.get(0).getTransactionDate());
         statement.setEndDate(transactions.get(transactions.size()-1).getTransactionDate());
         statement.setFilename(filename);
         statement.setOwnerId(owner.getId());
+        statement.setBankId(bank.getId());
         statement = statementRepository.save(statement);
 
+        //TODO: define rollback of transactions and statement : save all or nothing
         for (StatementTransaction transaction:transactions) {
             transaction.setStatementId(statement.getId());
             statementTransactionRepository.save(transaction);
