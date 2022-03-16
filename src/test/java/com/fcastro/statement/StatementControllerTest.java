@@ -1,42 +1,40 @@
-package com.example.statement;
+package com.fcastro.statement;
 
+import com.fcastro.BankStatementApplication;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.web.context.WebApplicationContext;
-
-import java.util.Map;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-/*
-@WebAppConfiguration
-@ContextConfiguration(classes = {UploadBankStatementController.class })
-@RunWith(SpringJUnit4ClassRunner.class)
-*/
+
+//@WebAppConfiguration
+//@ContextConfiguration(classes = {StatementController.class })
+//@RunWith(SpringJUnit4ClassRunner.class)
+
+@RunWith(SpringJUnit4ClassRunner.class) //to benefit from Spring features in JUnit tests.
+@ContextConfiguration(classes = StatementController.class) //to specify the configuration class that will be used during the test.
+@WebAppConfiguration //to indicate that the Spring application context to load is a WebApplicationContext.
+
+
 
 @WebMvcTest
 //@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-public class UploadStatementControllerTest {
+public class StatementControllerTest {
 
     //@Autowired
     //private WebApplicationContext webApplicationContext;
 
     @Autowired
     private MockMvc mockMvc;
-
-    @SpyBean
-    private StatementPropertiesHandle statementPropertiesHandle;
-
-    @SpyBean
-    private StatementService statementService;
 
     @Test
     public void testUploadCSVFile()
@@ -56,7 +54,9 @@ public class UploadStatementControllerTest {
 
         try {
             //MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
-            mockMvc.perform(multipart("/alda/upload-csv-file").file(file))
+            mockMvc.perform(multipart("api/v1/statements/upload").file(file)
+                    .param("ownerId", "alda")
+                    .param("bankId", "bb"))
                     .andExpect(status().isOk());
 
         } catch (Exception e) {
