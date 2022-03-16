@@ -1,4 +1,4 @@
-package com.example.statement;
+package com.fcastro.statement;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
