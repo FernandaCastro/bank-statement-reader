@@ -3,21 +3,15 @@ package com.fcastro.statement.transaction;
 import lombok.*;
 import org.springframework.format.annotation.NumberFormat;
 
-import javax.persistence.*;
-
-@Entity
-@Table(name = "STATEMENT_TRANSACTION")
 @Getter @Setter
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 @Builder
-public class StatementTransaction {
+public class StatementTransactionDto {
 
-    @Id
-    @GeneratedValue (strategy= GenerationType.IDENTITY)
-    private long id;
+    private Long id;
 
-    private long statementId;
+    private Long statementId;
 
     //@Temporal(TemporalType.DATE)
     private String transactionDate;
@@ -25,7 +19,7 @@ public class StatementTransaction {
     private String description;
 
     @NumberFormat(pattern = "#.##")
-    private double transactionValue;
+    private Double transactionValue;
 
     private String documentId;
 

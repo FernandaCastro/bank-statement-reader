@@ -1,16 +1,11 @@
 package com.fcastro.statement;
 
-import com.fcastro.BankStatementApplication;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -20,14 +15,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 //@ContextConfiguration(classes = {StatementController.class })
 //@RunWith(SpringJUnit4ClassRunner.class)
 
-@RunWith(SpringJUnit4ClassRunner.class) //to benefit from Spring features in JUnit tests.
-@ContextConfiguration(classes = StatementController.class) //to specify the configuration class that will be used during the test.
-@WebAppConfiguration //to indicate that the Spring application context to load is a WebApplicationContext.
-
+//@RunWith(SpringJUnit4ClassRunner.class) //to benefit from Spring features in JUnit tests.
+//@ContextConfiguration(classes = StatementController.class) //to specify the configuration class that will be used during the test.
+//@WebAppConfiguration //to indicate that the Spring application context to load is a WebApplicationContext.
+//@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 
 
 @WebMvcTest
-//@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 public class StatementControllerTest {
 
     //@Autowired

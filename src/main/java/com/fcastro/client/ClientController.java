@@ -2,6 +2,7 @@ package com.fcastro.client;
 
 import com.fcastro.exception.ResourceNotFoundException;
 import lombok.AllArgsConstructor;
+import org.modelmapper.ModelMapper;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.IanaLinkRelations;
@@ -15,42 +16,47 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @RestController
+@RequestMapping("api/v1/clients")
 @AllArgsConstructor
 public class ClientController {
 
     private final ClientRepository repository;
     private final ClientModelAssembler assembler;
+    private final ModelMapper modelMapper;
 
-    @GetMapping("api/v1/clients")
-    CollectionModel<EntityModel<Client>> all() {
+    @GetMapping
+    CollectionModel<EntityModel<ClientDto>> all() {
 
-        List<EntityModel<Client>> resources = repository.findAll().stream()
-                .map(assembler::toModel)
+        List<EntityModel<ClientDto>> resources = repository.findAll().stream()
+                .map(resource ->{
+                    return assembler.toModel(convertToDTO(resource));
+                })
                 .collect(Collectors.toList());
 
         return CollectionModel.of(resources, linkTo(methodOn(ClientController.class).all()).withSelfRel());
     }
 
-    @GetMapping("api/v1/clients/{id}")
-    EntityModel<Client> one(@PathVariable Long id) {
+    @GetMapping("/{id}")
+    EntityModel<ClientDto> one(@PathVariable Long id) {
 
         Client resource = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(Client.class, id));
 
-        return assembler.toModel(resource);
+        return assembler.toModel(convertToDTO(resource));
     }
 
-    @PostMapping("api/v1/clients")
-    ResponseEntity<?> newResource(@RequestBody Client newObj) {
+    @PostMapping
+    ResponseEntity<?> newResource(@RequestBody ClientDto newObj) {
 
-        EntityModel<Client> entityModel =  assembler.toModel(repository.save(newObj));
+        Client client = repository.save(convertToObject(newObj));
+        EntityModel<ClientDto> entityModel =  assembler.toModel(convertToDTO(client));
 
         return ResponseEntity.created(entityModel.getRequiredLink(IanaLinkRelations.SELF).toUri())
                 .body(entityModel);
     }
 
-    @PutMapping("api/v1/clients/{id}")
-    ResponseEntity<?> replace(@RequestBody Client newObj, @PathVariable Long id) {
+    @PutMapping("/{id}")
+    ResponseEntity<?> replace(@RequestBody ClientDto newObj, @PathVariable Long id) {
 
         Client updatedResource = repository.findById(id)
                 .map(resource -> {
@@ -59,20 +65,28 @@ public class ClientController {
                 })
                 .orElseGet(() -> {
                     newObj.setId(id);
-                    return repository.save(newObj);
+                    return repository.save(convertToObject(newObj));
                 });
 
-        EntityModel<Client> entityModel = assembler.toModel(updatedResource);
+        EntityModel<ClientDto> entityModel = assembler.toModel(convertToDTO(updatedResource));
 
         return ResponseEntity
                 .created(entityModel.getRequiredLink(IanaLinkRelations.SELF).toUri())
                 .body(entityModel);
     }
 
-    @DeleteMapping("api/v1/clients/{id}")
+    @DeleteMapping("/{id}")
     ResponseEntity<?> delete(@PathVariable Long id) {
         repository.deleteById(id);
 
         return ResponseEntity.noContent().build();
+    }
+
+    private ClientDto convertToDTO(Client obj){
+        return modelMapper.map(obj, ClientDto.class);
+    }
+
+    private Client convertToObject(ClientDto obj){
+        return modelMapper.map(obj, Client.class);
     }
 }

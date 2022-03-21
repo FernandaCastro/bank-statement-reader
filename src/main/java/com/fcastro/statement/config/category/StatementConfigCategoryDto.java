@@ -1,4 +1,4 @@
-package com.fcastro.client;
+package com.fcastro.statement.config.category;
 
 import lombok.*;
 
@@ -8,15 +8,16 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 
 @Entity
-@Builder(toBuilder = true)
-@AllArgsConstructor
 @Getter @Setter
+@Builder(toBuilder = true)
 @NoArgsConstructor
-public class Client {
+@AllArgsConstructor
+public class StatementConfigCategoryDto {
 
     @Id
     @GeneratedValue(strategy= GenerationType.IDENTITY)
-    private Long id;
-
+    private long id;
+    private long statementConfigId;
     private String name;
+    private String tags;
 }

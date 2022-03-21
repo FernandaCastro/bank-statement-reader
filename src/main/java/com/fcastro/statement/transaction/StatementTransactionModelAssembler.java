@@ -8,10 +8,10 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @Component
-class StatementTransactionModelAssembler implements RepresentationModelAssembler<StatementTransaction, EntityModel<StatementTransaction>> {
+public class StatementTransactionModelAssembler implements RepresentationModelAssembler<StatementTransactionDto, EntityModel<StatementTransactionDto>> {
 
     @Override
-    public EntityModel<StatementTransaction> toModel(StatementTransaction object) {
+    public EntityModel<StatementTransactionDto> toModel(StatementTransactionDto object) {
 
         return EntityModel.of(object,
                 linkTo(methodOn(StatementTransactionController.class).one(object.getStatementId(), object.getId())).withSelfRel(),

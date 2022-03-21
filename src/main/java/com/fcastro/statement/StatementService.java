@@ -1,9 +1,12 @@
 package com.fcastro.statement;
 
-import com.fcastro.statement.config.StatementCategoryConfig;
-import com.fcastro.statement.config.StatementCategoryConfigRepository;
-import com.fcastro.statement.config.StatementConfig;
-import com.fcastro.statement.config.StatementConfigRepository;
+import com.fcastro.bank.Bank;
+import com.fcastro.bank.BankRepository;
+import com.fcastro.client.Client;
+import com.fcastro.client.ClientRepository;
+import com.fcastro.exception.ResourceNotFoundException;
+import com.fcastro.statement.config.category.StatementConfigCategory;
+import com.fcastro.statement.config.category.StatementConfigCategoryRepository;
 import com.fcastro.statement.transaction.StatementTransaction;
 import com.fcastro.statement.transaction.StatementTransactionRepository;
 import com.opencsv.bean.CsvToBean;
@@ -22,7 +25,10 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.time.Clock;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 @AllArgsConstructor
@@ -33,13 +39,27 @@ public class StatementService {
     private final Environment env;
     private final StatementRepository statementRepository;
     private final StatementTransactionRepository statementTransactionRepository;
-    private final StatementConfigRepository statementConfigRepository;
-    private final StatementCategoryConfigRepository statementCategoryConfigRepository;
+    private final com.fcastro.statement.config.StatementConfigRepository statementConfigRepository;
+    private final StatementConfigCategoryRepository statementCategoryConfigRepository;
+    private final ClientRepository clientRepository;
+    private final BankRepository bankRepository;
 
+    public void validate(long clientId, long bankId, MultipartFile file){
+        //Validate ClientId, BankId and file
+        clientRepository.findById(clientId)
+                .orElseThrow(() -> new ResourceNotFoundException(Client.class, clientId));
+
+        bankRepository.findById(bankId)
+                .orElseThrow(() -> new ResourceNotFoundException(Bank.class, bankId));
+
+        if (file.isEmpty()) {
+            throw new IllegalStateException("File could not be read.");
+        }
+    }
 
     public List<StatementTransaction> read(long clientId, long bankId, MultipartFile file) {
 
-        StatementConfig statementConfiguration = statementConfigRepository.findByBankIdAndClientId(bankId, clientId);
+        com.fcastro.statement.config.StatementConfig statementConfiguration = statementConfigRepository.findByBankIdAndClientId(bankId, clientId);
         String[] transactionFields = statementConfiguration.getTransactionFields();
         if (transactionFields == null || transactionFields.length == 0) {
             log.error("Transaction fields undefined!");
@@ -76,17 +96,17 @@ public class StatementService {
 
     public Map<String, Double> categorize(long clientId, long bankId, List<StatementTransaction> transactions) {
 
-        StatementConfig statementConfiguration = statementConfigRepository.findByBankIdAndClientId(bankId, clientId);
+        com.fcastro.statement.config.StatementConfig statementConfiguration = statementConfigRepository.findByBankIdAndClientId(bankId, clientId);
         if (statementConfiguration == null) {
             log.error("Statement Configuration is undefined.");
         }
 
-        List<StatementCategoryConfig> statementCategories = statementCategoryConfigRepository.findAllByStatementConfigId(statementConfiguration.getId());
+        List<StatementConfigCategory> statementCategories = statementCategoryConfigRepository.findAllByStatementConfigId(statementConfiguration.getId());
         if (statementCategories == null || statementCategories.isEmpty())
             return null;
 
         Map<String, Double> sumCategories = new HashMap<>();
-        for (StatementCategoryConfig statementCategoryConfig : statementCategories) {
+        for (StatementConfigCategory statementCategoryConfig : statementCategories) {
             List<String> tags = Arrays.asList(statementCategoryConfig.getTags().trim().toUpperCase().split("\\s*,\\s*").clone());
 
             sumCategories.put(statementCategoryConfig.getName(),
@@ -106,16 +126,18 @@ public class StatementService {
 
         Statement statement = null;
         var statementOption = statementRepository.findByOwnerIdAndBankIdAndFilename(clientId, bankId, filename);
-        if (statementOption.isEmpty()) {
-            statement = new Statement();
-            statement.setFilename(filename);
-            statement.setClientId(clientId);
-            statement.setBankId(bankId);
-            statement.setProcessedAt(Clock.systemUTC().instant());
+        if (!statementOption.isPresent()) {
+            statement = Statement.builder()
+                                .filename(filename)
+                                .clientId(clientId)
+                                .bankId(bankId)
+                                .processedAt(Clock.systemUTC().instant())
+                                .build();
             statement = statementRepository.save(statement);
         }else{
             statement = statementOption.get();
-            statement = statementRepository.updateProcessedAtById(Clock.systemUTC().instant(),statement.getId());
+            statement.setProcessedAt(Clock.systemUTC().instant());
+            statementRepository.updateProcessedAtById(statement.getProcessedAt(), statement.getId());
             statementTransactionRepository.deleteAllByStatementId(statement.getId());
         }
 
@@ -129,10 +151,19 @@ public class StatementService {
     @Transactional
     public void delete(long statementId){
         var statementOption = statementRepository.findById(statementId);
-        if (!statementOption.isEmpty()) {
+        if (statementOption.isPresent()) {
             statementTransactionRepository.deleteAllByStatementId(statementId);
             statementRepository.deleteById(statementId);
         }
+    }
+
+    public List<Statement> findAll(){
+        return statementRepository.findAll();
+    }
+
+    public Statement findById(Long id){
+        return statementRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(Statement.class, id));
     }
 
     private boolean contains(String description, List<String> tags) {
