@@ -4,10 +4,10 @@ import com.fcastro.bank.Bank;
 import com.fcastro.bank.BankRepository;
 import com.fcastro.client.Client;
 import com.fcastro.client.ClientRepository;
-import com.fcastro.statement.config.StatementCategoryConfig;
-import com.fcastro.statement.config.StatementCategoryConfigRepository;
 import com.fcastro.statement.config.StatementConfig;
 import com.fcastro.statement.config.StatementConfigRepository;
+import com.fcastro.statement.config.category.StatementConfigCategory;
+import com.fcastro.statement.config.category.StatementConfigCategoryRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -28,7 +28,7 @@ public class LoadDatabase {
             BankRepository bankRepository,
             ClientRepository clientRepository,
             StatementConfigRepository statementConfigRepository,
-            StatementCategoryConfigRepository statementCategoryRepository) {
+            StatementConfigCategoryRepository statementCategoryRepository) {
 
         Clock.systemUTC();
         return args -> {
@@ -56,7 +56,7 @@ public class LoadDatabase {
 
             categories.forEach((name, value) -> {
                 statementCategoryRepository.save(
-                        StatementCategoryConfig.builder()
+                        StatementConfigCategory.builder()
                                 .statementConfigId(statementConfig.getId())
                                 .name(name)
                                 .tags(value)

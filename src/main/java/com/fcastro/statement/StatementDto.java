@@ -2,22 +2,16 @@ package com.fcastro.statement;
 
 import lombok.*;
 
-import javax.persistence.*;
 import java.time.Instant;
 
-@Entity
-@Table(name="STATEMENT")
 @Getter @Setter
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 @Builder
-public class Statement {
+public class StatementDto {
 
-    @Id
-    @GeneratedValue (strategy= GenerationType.IDENTITY)
     private Long id;
 
-    //@Temporal(TemporalType.TIMESTAMP)
     private Instant processedAt;
 
     private String filename;

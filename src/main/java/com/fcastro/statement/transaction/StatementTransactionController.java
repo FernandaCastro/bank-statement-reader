@@ -2,12 +2,12 @@ package com.fcastro.statement.transaction;
 
 import com.fcastro.exception.ResourceNotFoundException;
 import lombok.AllArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.modelmapper.ModelMapper;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -17,31 +17,38 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @RestController
+@RequestMapping("api/v1/statements/{statementId}/transactions")
 @AllArgsConstructor
 public class StatementTransactionController {
 
-    private static final Logger log = LoggerFactory.getLogger(StatementTransactionController.class);
-
     private final StatementTransactionRepository repository;
     private final StatementTransactionModelAssembler assembler;
+    private final ModelMapper modelMapper;
 
-    @GetMapping("api/v1/statements/{statementId}/transactions/{id}")
-    EntityModel<StatementTransaction> one(@PathVariable Long statementId, @PathVariable Long id) {
 
-        StatementTransaction resource = repository.findById(id)
+    @GetMapping("/{id}")
+    public EntityModel<StatementTransactionDto> one(@PathVariable Long statementId, @PathVariable Long id) {
+
+        StatementTransaction resource = repository.findByIdAndStatementId(statementId, id)
                 .orElseThrow(() -> new ResourceNotFoundException(StatementTransaction.class, id));
 
-        return assembler.toModel(resource);
+        return assembler.toModel(convertToDTO(resource));
     }
 
-    @GetMapping("api/v1/statements/{id}/transactions")
-    CollectionModel<EntityModel<StatementTransaction>> all(@PathVariable Long id) {
+    @GetMapping
+    public CollectionModel<EntityModel<StatementTransactionDto>> all(@PathVariable Long id) {
 
-        List<EntityModel<StatementTransaction>> resources = repository.findAllByStatementId(id).stream()
-                .map(assembler::toModel)
+        List<EntityModel<StatementTransactionDto>> resources = repository.findAllByStatementId(id).stream()
+                .map(resource -> {
+                    return assembler.toModel(convertToDTO(resource));
+                })
                 .collect(Collectors.toList());
 
         return CollectionModel.of(resources, linkTo(methodOn(StatementTransactionController.class).all(id)).withSelfRel());
+    }
+
+    private StatementTransactionDto convertToDTO(StatementTransaction obj){
+        return modelMapper.map(obj, StatementTransactionDto.class);
     }
 }
 

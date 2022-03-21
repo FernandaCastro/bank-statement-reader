@@ -8,10 +8,10 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @Component
-class ClientModelAssembler implements RepresentationModelAssembler<Client, EntityModel<Client>> {
+class ClientModelAssembler implements RepresentationModelAssembler<ClientDto, EntityModel<ClientDto>> {
 
     @Override
-    public EntityModel<Client> toModel(Client object) {
+    public EntityModel<ClientDto> toModel(ClientDto object) {
 
         return EntityModel.of(object,
                 linkTo(methodOn(ClientController.class).one(object.getId())).withSelfRel(),

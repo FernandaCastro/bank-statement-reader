@@ -1,4 +1,4 @@
-package com.fcastro.statement.config;
+package com.fcastro.statement.config.category;
 
 import lombok.*;
 
@@ -12,7 +12,7 @@ import javax.persistence.Id;
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
-public class StatementCategoryConfig {
+public class StatementConfigCategory {
 
     @Id
     @GeneratedValue(strategy= GenerationType.IDENTITY)
