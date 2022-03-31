@@ -8,10 +8,10 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @Component
-class StatementConfigModelAssembler implements RepresentationModelAssembler<StatementConfigDto, EntityModel<StatementConfigDto>> {
+class StatementConfigViewAssembler implements RepresentationModelAssembler<StatementConfigView, EntityModel<StatementConfigView>> {
 
     @Override
-    public EntityModel<StatementConfigDto> toModel(StatementConfigDto object) {
+    public EntityModel<StatementConfigView> toModel(StatementConfigView object) {
 
         return EntityModel.of(object,
                 linkTo(methodOn(StatementConfigController.class).one(object.getId())).withSelfRel(),

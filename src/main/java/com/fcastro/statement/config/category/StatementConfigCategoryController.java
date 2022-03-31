@@ -24,16 +24,16 @@ public class StatementConfigCategoryController {
 
     private final StatementConfigRepository statementConfigRepository;
     private final StatementConfigCategoryRepository repository;
-    private final StatementConfigCategoryModelAssembler assembler;
+    private final StatementConfigCategoryViewAssembler assembler;
     private final ModelMapper modelMapper;
 
     @GetMapping
-    CollectionModel<EntityModel<StatementConfigCategoryDto>> all(@PathVariable Long statementConfigId) {
+    CollectionModel<EntityModel<StatementConfigCategoryView>> all(@PathVariable Long statementConfigId) {
 
         statementConfigRepository.findById(statementConfigId)
                 .orElseThrow(() -> new ResourceNotFoundException(StatementConfig.class, statementConfigId));
 
-        List<EntityModel<StatementConfigCategoryDto>> categories = repository.findAllByStatementConfigId(statementConfigId).stream()
+        List<EntityModel<StatementConfigCategoryView>> categories = repository.findAllByStatementConfigId(statementConfigId).stream()
                 .map(resource -> {
                     return assembler.toModel(convertToDTO(resource));
                 })
@@ -43,7 +43,7 @@ public class StatementConfigCategoryController {
     }
 
     @GetMapping("/{id}")
-    EntityModel<StatementConfigCategoryDto> one(@PathVariable Long statementConfigId, @PathVariable Long id) {
+    EntityModel<StatementConfigCategoryView> one(@PathVariable Long statementConfigId, @PathVariable Long id) {
 
         statementConfigRepository.findById(statementConfigId)
                 .orElseThrow(() -> new ResourceNotFoundException(StatementConfig.class, statementConfigId));
@@ -63,7 +63,7 @@ public class StatementConfigCategoryController {
         newCategory.setStatementConfigId(statementConfigId);
         StatementConfigCategory category = repository.save(newCategory);
 
-        EntityModel<StatementConfigCategoryDto> entityModel =  assembler.toModel(convertToDTO(category));
+        EntityModel<StatementConfigCategoryView> entityModel =  assembler.toModel(convertToDTO(category));
 
         return ResponseEntity.created(entityModel.getRequiredLink(IanaLinkRelations.SELF).toUri())
                 .body(entityModel);
@@ -86,7 +86,7 @@ public class StatementConfigCategoryController {
                     return repository.save(newCategory);
                 });
 
-        EntityModel<StatementConfigCategoryDto> entityModel = assembler.toModel(convertToDTO(updatedResource));
+        EntityModel<StatementConfigCategoryView> entityModel = assembler.toModel(convertToDTO(updatedResource));
 
         return ResponseEntity
                 .created(entityModel.getRequiredLink(IanaLinkRelations.SELF).toUri())
@@ -100,7 +100,7 @@ public class StatementConfigCategoryController {
         return ResponseEntity.noContent().build();
     }
 
-    private StatementConfigCategoryDto convertToDTO(StatementConfigCategory obj){
-        return modelMapper.map(obj, StatementConfigCategoryDto.class);
+    private StatementConfigCategoryView convertToDTO(StatementConfigCategory obj){
+        return modelMapper.map(obj, StatementConfigCategoryView.class);
     }
 }

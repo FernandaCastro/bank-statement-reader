@@ -19,6 +19,8 @@ public class StatementConfig {
     private long id;
     private long clientId;
     private long bankId;
-    private String[] transactionFields;
-
+    private String transactionDateField;
+    private String transactionValueField;
+    private String descriptionField;
+    private String documentIdField;
 }

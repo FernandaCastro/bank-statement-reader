@@ -1,4 +1,4 @@
-package com.fcastro.bank;
+package com.fcastro.client;
 
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.server.RepresentationModelAssembler;
@@ -8,13 +8,13 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @Component
-class BankModelAssembler implements RepresentationModelAssembler<BankDto, EntityModel<BankDto>> {
+class ClientViewAssembler implements RepresentationModelAssembler<ClientView, EntityModel<ClientView>> {
 
     @Override
-    public EntityModel<BankDto> toModel(BankDto object) {
+    public EntityModel<ClientView> toModel(ClientView object) {
 
         return EntityModel.of(object,
-                linkTo(methodOn(BankController.class).one(object.getId())).withSelfRel(),
-                linkTo(methodOn(BankController.class).all()).withRel("banks"));
+                linkTo(methodOn(ClientController.class).one(object.getId())).withSelfRel(),
+                linkTo(methodOn(ClientController.class).all()).withRel("clients"));
     }
 }

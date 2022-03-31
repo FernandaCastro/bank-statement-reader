@@ -21,13 +21,13 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 public class ClientController {
 
     private final ClientRepository repository;
-    private final ClientModelAssembler assembler;
+    private final ClientViewAssembler assembler;
     private final ModelMapper modelMapper;
 
     @GetMapping
-    CollectionModel<EntityModel<ClientDto>> all() {
+    CollectionModel<EntityModel<ClientView>> all() {
 
-        List<EntityModel<ClientDto>> resources = repository.findAll().stream()
+        List<EntityModel<ClientView>> resources = repository.findAll().stream()
                 .map(resource ->{
                     return assembler.toModel(convertToDTO(resource));
                 })
@@ -37,7 +37,7 @@ public class ClientController {
     }
 
     @GetMapping("/{id}")
-    EntityModel<ClientDto> one(@PathVariable Long id) {
+    EntityModel<ClientView> one(@PathVariable Long id) {
 
         Client resource = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(Client.class, id));
@@ -46,17 +46,17 @@ public class ClientController {
     }
 
     @PostMapping
-    ResponseEntity<?> newResource(@RequestBody ClientDto newObj) {
+    ResponseEntity<?> newResource(@RequestBody ClientView newObj) {
 
         Client client = repository.save(convertToObject(newObj));
-        EntityModel<ClientDto> entityModel =  assembler.toModel(convertToDTO(client));
+        EntityModel<ClientView> entityModel =  assembler.toModel(convertToDTO(client));
 
         return ResponseEntity.created(entityModel.getRequiredLink(IanaLinkRelations.SELF).toUri())
                 .body(entityModel);
     }
 
     @PutMapping("/{id}")
-    ResponseEntity<?> replace(@RequestBody ClientDto newObj, @PathVariable Long id) {
+    ResponseEntity<?> replace(@RequestBody ClientView newObj, @PathVariable Long id) {
 
         Client updatedResource = repository.findById(id)
                 .map(resource -> {
@@ -68,7 +68,7 @@ public class ClientController {
                     return repository.save(convertToObject(newObj));
                 });
 
-        EntityModel<ClientDto> entityModel = assembler.toModel(convertToDTO(updatedResource));
+        EntityModel<ClientView> entityModel = assembler.toModel(convertToDTO(updatedResource));
 
         return ResponseEntity
                 .created(entityModel.getRequiredLink(IanaLinkRelations.SELF).toUri())
@@ -82,11 +82,11 @@ public class ClientController {
         return ResponseEntity.noContent().build();
     }
 
-    private ClientDto convertToDTO(Client obj){
-        return modelMapper.map(obj, ClientDto.class);
+    private ClientView convertToDTO(Client obj){
+        return modelMapper.map(obj, ClientView.class);
     }
 
-    private Client convertToObject(ClientDto obj){
+    private Client convertToObject(ClientView obj){
         return modelMapper.map(obj, Client.class);
     }
 }

@@ -8,15 +8,15 @@ import java.time.Instant;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class StatementDto {
+public class StatementView {
 
-    private Long id;
+    private long id;
 
     private Instant processedAt;
 
     private String filename;
 
-    private Long clientId;
+    private long clientId;
 
-    private Long bankId;
+    private long bankId;
 }

@@ -7,11 +7,11 @@ import org.springframework.format.annotation.NumberFormat;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class StatementTransactionDto {
+public class StatementTransactionView {
 
-    private Long id;
+    private long id;
 
-    private Long statementId;
+    private long statementId;
 
     //@Temporal(TemporalType.DATE)
     private String transactionDate;

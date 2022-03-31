@@ -12,7 +12,7 @@ import javax.persistence.Id;
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
-public class StatementConfigCategoryDto {
+public class StatementConfigCategoryView {
 
     @Id
     @GeneratedValue(strategy= GenerationType.IDENTITY)

@@ -15,14 +15,14 @@ public class Statement {
 
     @Id
     @GeneratedValue (strategy= GenerationType.IDENTITY)
-    private Long id;
+    private long id;
 
     //@Temporal(TemporalType.TIMESTAMP)
     private Instant processedAt;
 
     private String filename;
 
-    private Long clientId;
+    private long clientId;
 
-    private Long bankId;
+    private long bankId;
 }

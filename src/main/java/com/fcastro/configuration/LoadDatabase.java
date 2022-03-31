@@ -33,7 +33,8 @@ public class LoadDatabase {
         Clock.systemUTC();
         return args -> {
             Bank bank = bankRepository.save(Bank.builder().name("BB").build());
-            log.info("Preloading Bank" + bank.getName());
+            bankRepository.save(Bank.builder().name("Itaú").build());
+            log.info("Preloading Banks");
 
             Client client = clientRepository.save(Client.builder().name("Mary").build());
             log.info("Preloading Client" + client.getName());
@@ -42,9 +43,12 @@ public class LoadDatabase {
                     StatementConfig.builder()
                             .bankId(bank.getId())
                             .clientId(client.getId())
-                            .transactionFields(new String[]{"Data", "Histórico", "Número do documento", "Valor"})
+                            .descriptionField("Histórico")
+                            .transactionDateField("Data")
+                            .transactionValueField("Valor")
+                            .documentIdField("Número do documento")
                             .build());
-            log.info("Preloading Transaction Fields" + statementConfig.getTransactionFields());
+            log.info("Preloading Transaction Fields");
 
             Map<String, String> categories = new HashMap<>();
             categories.put("income", "Benefício INSS, Crédito em conta");

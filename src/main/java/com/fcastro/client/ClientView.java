@@ -10,7 +10,7 @@ import javax.persistence.Id;
 @AllArgsConstructor
 @Getter @Setter
 @NoArgsConstructor
-public class ClientDto {
+public class ClientView {
 
     @Id
     @GeneratedValue(strategy= GenerationType.IDENTITY)

@@ -21,41 +21,41 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 public class BankController {
 
     private final BankRepository repository;
-    private final BankModelAssembler assembler;
+    private final BankViewAssembler assembler;
     private final ModelMapper modelMapper;
 
     @GetMapping
-    CollectionModel<EntityModel<BankDto>> all() {
+    CollectionModel<EntityModel<BankView>> all() {
 
-        List<EntityModel<BankDto>> banks = repository.findAll().stream()
-                .map(bank -> {
-                    return assembler.toModel(convertToDTO(bank));
-                })
+        List<EntityModel<BankView>> banks = repository.findAll().stream()
+                .map(bank -> assembler.toModel(convertToModel(bank)))
                 .collect(Collectors.toList());
 
         return CollectionModel.of(banks, linkTo(methodOn(BankController.class).all()).withSelfRel());
     }
 
     @GetMapping("/{id}")
-    EntityModel<BankDto> one(@PathVariable Long id) {
+    public EntityModel<BankView> one(@PathVariable Long id) {
 
         Bank bank = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(Bank.class, id));
 
-        return assembler.toModel(convertToDTO(bank));
+        return assembler.toModel(convertToModel(bank));
     }
 
     @PostMapping
-    ResponseEntity<?> newBank(@RequestBody Bank newBank) {
+    ResponseEntity<?> newBank(@RequestBody BankView newBank) {
 
-        EntityModel<BankDto> entityModel =  assembler.toModel(convertToDTO(repository.save(newBank)));
+        Bank savedBank = repository.save(convertToObject(newBank));
+        EntityModel<BankView> entityModel =  assembler.toModel(convertToModel(savedBank));
 
-        return ResponseEntity.created(entityModel.getRequiredLink(IanaLinkRelations.SELF).toUri())
+        return ResponseEntity
+                .created(entityModel.getRequiredLink(IanaLinkRelations.SELF).toUri())
                 .body(entityModel);
     }
 
     @PutMapping("/{id}")
-    ResponseEntity<?> replace(@RequestBody Bank newBank, @PathVariable Long id) {
+    ResponseEntity<?> replace(@RequestBody BankView newBank, @PathVariable Long id) {
 
         Bank updatedBank = repository.findById(id)
                 .map(resource -> {
@@ -64,10 +64,10 @@ public class BankController {
                 })
                 .orElseGet(() -> {
                     newBank.setId(id);
-                    return repository.save(newBank);
+                    return repository.save(convertToObject(newBank));
                 });
 
-        EntityModel<BankDto> entityModel = assembler.toModel(convertToDTO(updatedBank));
+        EntityModel<BankView> entityModel = assembler.toModel(convertToModel(updatedBank));
 
         return ResponseEntity
                 .created(entityModel.getRequiredLink(IanaLinkRelations.SELF).toUri())
@@ -76,16 +76,17 @@ public class BankController {
 
     @DeleteMapping("/{id}")
     ResponseEntity<?> delete(@PathVariable Long id) {
+
         repository.deleteById(id);
 
         return ResponseEntity.noContent().build();
     }
 
-    private BankDto convertToDTO(Bank obj){
-        return modelMapper.map(obj, BankDto.class);
+    private BankView convertToModel(Bank obj){
+        return modelMapper.map(obj, BankView.class);
     }
 
-    private Bank convertToObject(BankDto obj){
+    private Bank convertToObject(BankView obj){
         return modelMapper.map(obj, Bank.class);
     }
 }

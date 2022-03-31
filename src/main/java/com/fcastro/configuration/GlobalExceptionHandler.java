@@ -1,5 +1,6 @@
 package com.fcastro.configuration;
 
+import com.fcastro.exception.ParseCSVException;
 import com.fcastro.exception.ResourceNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +45,7 @@ public class GlobalExceptionHandler {
         exceptionTypes.put(HttpMediaTypeNotSupportedException.class, "urn:general:http-media-type-not-supported");
         exceptionTypes.put(HttpRequestMethodNotSupportedException.class, "urn:general:method-not-allowed");
         exceptionTypes.put(ResourceNotFoundException.class, "urn:general:resource-not-found");
+        exceptionTypes.put(ParseCSVException.class, "urn:general:invalid-csv-data");
     }
 
     @ExceptionHandler(value = { DataAccessException.class })
@@ -61,7 +63,7 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                 .type(type)
                 .instance("urn:uuid:" + uuid)
-                .path(request.getRequestURL().toString())
+                .path(request.getRequestURI().toString())
                 .build();
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(apiError);
@@ -82,13 +84,13 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                 .type(type)
                 .instance("urn:uuid:" + UUID.randomUUID())
-                .path(request.getRequestURL().toString())
+                .path(request.getRequestURI().toString())
                 .build();
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(apiError);
     }
 
-    @ExceptionHandler(value = { MissingServletRequestParameterException.class, MissingServletRequestPartException.class, HttpMessageNotReadableException.class})
+    @ExceptionHandler(value = { MissingServletRequestParameterException.class, MissingServletRequestPartException.class, HttpMessageNotReadableException.class, ParseCSVException.class})
     public ResponseEntity<?> badRequest(final Exception ex, final HttpServletRequest request) {
         final var apiError = com.fcastro.configuration.ApiError.builder()
                 .title(ex.getMessage())
@@ -96,7 +98,7 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.BAD_REQUEST.value())
                 .type(exceptionTypes.get(ex.getClass()))
                 .instance("urn:uuid:" + UUID.randomUUID())
-                .path(request.getRequestURL().toString())
+                .path(request.getRequestURI().toString())
                 .build();
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(apiError);
@@ -110,7 +112,7 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.NOT_ACCEPTABLE.value())
                 .type(exceptionTypes.get(ex.getClass()))
                 .instance("urn:uuid:" + UUID.randomUUID())
-                .path(request.getRequestURL().toString())
+                .path(request.getRequestURI().toString())
                 .build();
 
         return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(apiError);
@@ -124,7 +126,7 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.METHOD_NOT_ALLOWED.value())
                 .type(exceptionTypes.get(ex.getClass()))
                 .instance("urn:uuid:" + UUID.randomUUID())
-                .path(request.getRequestURL().toString())
+                .path(request.getRequestURI().toString())
                 .build();
 
         return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(apiError);
@@ -138,7 +140,7 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.UNSUPPORTED_MEDIA_TYPE.value())
                 .type(exceptionTypes.get(ex.getClass()))
                 .instance("urn:uuid:" + UUID.randomUUID())
-                .path(request.getRequestURL().toString())
+                .path(request.getRequestURI().toString())
                 .build();
 
         return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).body(apiError);
@@ -157,7 +159,7 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.BAD_REQUEST.value())
                 .type(exceptionTypes.get(ex.getClass()))
                 .instance("urn:uuid:" + UUID.randomUUID())
-                .path(request.getRequestURL().toString())
+                .path(request.getRequestURI().toString())
                 .build();
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(apiError);
@@ -174,7 +176,7 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.NOT_FOUND.value())
                 .type(exceptionTypes.get(ex.getClass()))
                 .instance("urn:uuid:" + UUID.randomUUID())
-                .path(request.getRequestURL().toString())
+                .path(request.getRequestURI().toString())
                 .build();
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(apiError);

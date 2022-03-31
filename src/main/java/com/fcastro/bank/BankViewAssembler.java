@@ -1,4 +1,4 @@
-package com.fcastro.statement;
+package com.fcastro.bank;
 
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.server.RepresentationModelAssembler;
@@ -8,13 +8,12 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @Component
-class StatementModelAssembler implements RepresentationModelAssembler<StatementDto, EntityModel<StatementDto>> {
+class BankViewAssembler implements RepresentationModelAssembler<BankView, EntityModel<BankView>> {
 
     @Override
-    public EntityModel<StatementDto> toModel(StatementDto object) {
+    public EntityModel<BankView> toModel(BankView object) {
 
         return EntityModel.of(object,
-                linkTo(methodOn(StatementController.class).one(object.getId())).withSelfRel(),
-                linkTo(methodOn(StatementController.class).all()).withRel("statements"));
+                linkTo(methodOn(BankController.class).one(object.getId())).withSelfRel());
     }
 }

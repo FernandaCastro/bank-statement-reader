@@ -24,16 +24,16 @@ public class StatementConfigController {
 
     private final StatementConfigRepository statementConfigRepository;
     private final ClientRepository clientRepository;
-    private final StatementConfigModelAssembler configAssembler;
+    private final StatementConfigViewAssembler configAssembler;
     private final ModelMapper modelMapper;
 
     @GetMapping
-    CollectionModel<EntityModel<StatementConfigDto>> all(@RequestParam(required = true) long clientId) {
+    CollectionModel<EntityModel<StatementConfigView>> all(@RequestParam(required = true) long clientId) {
 
         clientRepository.findById(clientId)
                 .orElseThrow(() -> new ResourceNotFoundException(Client.class, clientId));
 
-        List<EntityModel<StatementConfigDto>> configs = statementConfigRepository.findAllByClientId(clientId).stream()
+        List<EntityModel<StatementConfigView>> configs = statementConfigRepository.findAllByClientId(clientId).stream()
                 .map(resource -> {
                     return configAssembler.toModel(convertToDTO(resource));
                 })
@@ -43,7 +43,7 @@ public class StatementConfigController {
     }
 
     @GetMapping("/{id}")
-    EntityModel<StatementConfigDto> one(@PathVariable Long id) {
+    EntityModel<StatementConfigView> one(@PathVariable Long id) {
 
         StatementConfig config = statementConfigRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(StatementConfig.class, id));
@@ -52,11 +52,11 @@ public class StatementConfigController {
     }
 
     @PostMapping
-    ResponseEntity<?> newConfig(@RequestBody StatementConfigDto newObj) {
+    ResponseEntity<?> newConfig(@RequestBody StatementConfigView newObj) {
 
         StatementConfig statementConfig = statementConfigRepository.save(convertToObject(newObj));
 
-        EntityModel<StatementConfigDto> entityModel =  configAssembler.toModel(convertToDTO(statementConfig));
+        EntityModel<StatementConfigView> entityModel =  configAssembler.toModel(convertToDTO(statementConfig));
 
         return ResponseEntity.created(entityModel.getRequiredLink(IanaLinkRelations.SELF).toUri())
                 .body(entityModel);
@@ -67,7 +67,10 @@ public class StatementConfigController {
 
         StatementConfig updatedResource = statementConfigRepository.findById(id)
                 .map(resource -> {
-                    resource.setTransactionFields(newObj.getTransactionFields());
+                    resource.setDescriptionField(newObj.getDescriptionField());
+                    resource.setDocumentIdField(newObj.getDocumentIdField());
+                    resource.setTransactionDateField(newObj.getTransactionDateField());
+                    resource.setTransactionValueField(newObj.getTransactionValueField());
                     return statementConfigRepository.save(resource);
                 })
                 .orElseGet(() -> {
@@ -75,7 +78,7 @@ public class StatementConfigController {
                     return statementConfigRepository.save(newObj);
                 });
 
-        EntityModel<StatementConfigDto> entityModel = configAssembler.toModel(convertToDTO(updatedResource));
+        EntityModel<StatementConfigView> entityModel = configAssembler.toModel(convertToDTO(updatedResource));
 
         return ResponseEntity
                 .created(entityModel.getRequiredLink(IanaLinkRelations.SELF).toUri())
@@ -89,11 +92,11 @@ public class StatementConfigController {
         return ResponseEntity.noContent().build();
     }
 
-    private StatementConfigDto convertToDTO(StatementConfig obj){
-        return modelMapper.map(obj, StatementConfigDto.class);
+    private StatementConfigView convertToDTO(StatementConfig obj){
+        return modelMapper.map(obj, StatementConfigView.class);
     }
 
-    private StatementConfig convertToObject(StatementConfigDto obj){
+    private StatementConfig convertToObject(StatementConfigView obj){
         return modelMapper.map(obj, StatementConfig.class);
     }
 }

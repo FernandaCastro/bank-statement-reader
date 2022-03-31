@@ -20,11 +20,14 @@ public class StatementTransaction {
     private long statementId;
 
     //@Temporal(TemporalType.DATE)
+    @Column(nullable = false)
     private String transactionDate;
 
+    @Column(nullable = false)
     private String description;
 
     @NumberFormat(pattern = "#.##")
+    @Column(nullable = false)
     private double transactionValue;
 
     private String documentId;

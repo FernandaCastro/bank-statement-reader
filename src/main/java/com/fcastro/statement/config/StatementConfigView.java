@@ -6,7 +6,7 @@ import lombok.*;
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
-public class StatementConfigDto {
+public class StatementConfigView {
 
     private long id;
     private long clientId;

@@ -22,12 +22,12 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 public class StatementTransactionController {
 
     private final StatementTransactionRepository repository;
-    private final StatementTransactionModelAssembler assembler;
+    private final StatementTransactionViewAssembler assembler;
     private final ModelMapper modelMapper;
 
 
     @GetMapping("/{id}")
-    public EntityModel<StatementTransactionDto> one(@PathVariable Long statementId, @PathVariable Long id) {
+    public EntityModel<StatementTransactionView> one(@PathVariable Long statementId, @PathVariable Long id) {
 
         StatementTransaction resource = repository.findByIdAndStatementId(statementId, id)
                 .orElseThrow(() -> new ResourceNotFoundException(StatementTransaction.class, id));
@@ -36,19 +36,19 @@ public class StatementTransactionController {
     }
 
     @GetMapping
-    public CollectionModel<EntityModel<StatementTransactionDto>> all(@PathVariable Long id) {
+    public CollectionModel<EntityModel<StatementTransactionView>> all(@PathVariable Long statementId) {
 
-        List<EntityModel<StatementTransactionDto>> resources = repository.findAllByStatementId(id).stream()
+        List<EntityModel<StatementTransactionView>> resources = repository.findAllByStatementId(statementId).stream()
                 .map(resource -> {
                     return assembler.toModel(convertToDTO(resource));
                 })
                 .collect(Collectors.toList());
 
-        return CollectionModel.of(resources, linkTo(methodOn(StatementTransactionController.class).all(id)).withSelfRel());
+        return CollectionModel.of(resources, linkTo(methodOn(StatementTransactionController.class).all(statementId)).withSelfRel());
     }
 
-    private StatementTransactionDto convertToDTO(StatementTransaction obj){
-        return modelMapper.map(obj, StatementTransactionDto.class);
+    private StatementTransactionView convertToDTO(StatementTransaction obj){
+        return modelMapper.map(obj, StatementTransactionView.class);
     }
 }
 

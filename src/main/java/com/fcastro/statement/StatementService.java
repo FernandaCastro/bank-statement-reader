@@ -1,107 +1,87 @@
 package com.fcastro.statement;
 
-import com.fcastro.bank.Bank;
-import com.fcastro.bank.BankRepository;
-import com.fcastro.client.Client;
-import com.fcastro.client.ClientRepository;
+import com.fcastro.exception.ParseCSVException;
 import com.fcastro.exception.ResourceNotFoundException;
+import com.fcastro.statement.config.StatementConfig;
 import com.fcastro.statement.config.category.StatementConfigCategory;
 import com.fcastro.statement.config.category.StatementConfigCategoryRepository;
 import com.fcastro.statement.transaction.StatementTransaction;
+import com.fcastro.statement.transaction.StatementTransactionView;
 import com.fcastro.statement.transaction.StatementTransactionRepository;
 import com.opencsv.bean.CsvToBean;
 import com.opencsv.bean.CsvToBeanBuilder;
 import com.opencsv.bean.HeaderColumnNameTranslateMappingStrategy;
 import lombok.AllArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.core.env.Environment;
+import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
 import java.time.Clock;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
 public class StatementService {
 
-    private static final Logger log = LoggerFactory.getLogger(StatementService.class);
-
-    private final Environment env;
+    private final ModelMapper modelMapper;
     private final StatementRepository statementRepository;
     private final StatementTransactionRepository statementTransactionRepository;
     private final com.fcastro.statement.config.StatementConfigRepository statementConfigRepository;
     private final StatementConfigCategoryRepository statementCategoryConfigRepository;
-    private final ClientRepository clientRepository;
-    private final BankRepository bankRepository;
 
-    public void validate(long clientId, long bankId, MultipartFile file){
-        //Validate ClientId, BankId and file
-        clientRepository.findById(clientId)
-                .orElseThrow(() -> new ResourceNotFoundException(Client.class, clientId));
+    public StatementUploadResponse uploadStatements(long clientId, long bankId, String filename, BufferedReader reader) {
 
-        bankRepository.findById(bankId)
-                .orElseThrow(() -> new ResourceNotFoundException(Bank.class, bankId));
-
-        if (file.isEmpty()) {
-            throw new IllegalStateException("File could not be read.");
-        }
-    }
-
-    public List<StatementTransaction> read(long clientId, long bankId, MultipartFile file) {
-
-        com.fcastro.statement.config.StatementConfig statementConfiguration = statementConfigRepository.findByBankIdAndClientId(bankId, clientId);
-        String[] transactionFields = statementConfiguration.getTransactionFields();
-        if (transactionFields == null || transactionFields.length == 0) {
-            log.error("Transaction fields undefined!");
+        StatementConfig statementConfig = statementConfigRepository.findByBankIdAndClientId(bankId, clientId);
+        if (statementConfig==null){
+            throw new ResourceNotFoundException(StatementConfig.class, clientId, bankId);
         }
 
-        Reader reader = null;
-        try {
-            reader = new BufferedReader(new InputStreamReader(file.getInputStream(), "ISO-8859-1"));
-        } catch (IOException e) {
-            throw new IllegalStateException("File [" + file.getResource().getFilename() + "] could not be read.");
-        }
+        List<StatementTransaction> transactions = read(statementConfig, reader);
+        Map<String, Double> sumCategories = categorize(statementConfig, transactions);
+        Statement statement = save(clientId, bankId, filename, transactions);
 
-        Map<String, String> mapping = new HashMap<String, String>();
-        mapping.put(transactionFields[0], "transactionDate");
-        mapping.put(transactionFields[1], "description");
-        mapping.put(transactionFields[2], "documentId");
-        mapping.put(transactionFields[3], "transactionValue");
-
-        HeaderColumnNameTranslateMappingStrategy<StatementTransaction> strategy =
-                new HeaderColumnNameTranslateMappingStrategy<StatementTransaction>();
-        strategy.setType(StatementTransaction.class);
-        strategy.setColumnMapping(mapping);
-
-        CsvToBean<StatementTransaction> csvToBean = new CsvToBeanBuilder<StatementTransaction>(reader)
-                .withMappingStrategy(strategy)
-               // .withKeepCarriageReturn(true)
-               // .withQuoteChar('"')
-               // .withSeparator(',')
-                .withIgnoreLeadingWhiteSpace(true)
+        return StatementUploadResponse.builder()
+                .statement(convertToModel(statement))
+                .transactions(convertToModel(transactions))
+                .summary(sumCategories)
                 .build();
-
-        return csvToBean.parse();
     }
 
-    public Map<String, Double> categorize(long clientId, long bankId, List<StatementTransaction> transactions) {
+    protected List<StatementTransaction> read(StatementConfig statementConfig, BufferedReader reader) {
 
-        com.fcastro.statement.config.StatementConfig statementConfiguration = statementConfigRepository.findByBankIdAndClientId(bankId, clientId);
-        if (statementConfiguration == null) {
-            log.error("Statement Configuration is undefined.");
+        Map<String, String> mapping = new HashMap<>();
+        mapping.put(statementConfig.getTransactionDateField(), "transactionDate");
+        mapping.put(statementConfig.getDescriptionField(), "description");
+        mapping.put(statementConfig.getDocumentIdField(), "documentId");
+        mapping.put(statementConfig.getTransactionValueField(), "transactionValue");
+
+        validateHeader(reader, mapping);
+
+        try {
+            HeaderColumnNameTranslateMappingStrategy<StatementTransaction> strategy =
+                    new HeaderColumnNameTranslateMappingStrategy<>();
+            strategy.setType(StatementTransaction.class);
+            strategy.setColumnMapping(mapping);
+
+            CsvToBean<StatementTransaction> csvToBean = new CsvToBeanBuilder<StatementTransaction>(reader)
+                    .withMappingStrategy(strategy)
+                    .build();
+
+            return csvToBean.parse();
+        } catch (Exception e) {
+            throw new ParseCSVException(e.getMessage());
         }
+    }
 
-        List<StatementConfigCategory> statementCategories = statementCategoryConfigRepository.findAllByStatementConfigId(statementConfiguration.getId());
+    protected Map<String, Double> categorize(StatementConfig statementConfig, List<StatementTransaction> transactions) {
+
+        List<StatementConfigCategory> statementCategories = statementCategoryConfigRepository.findAllByStatementConfigId(statementConfig.getId());
         if (statementCategories == null || statementCategories.isEmpty())
             return null;
 
@@ -122,26 +102,26 @@ public class StatementService {
     }
 
     @Transactional
-    public Statement save(long clientId, long bankId, String filename, List<StatementTransaction> transactions) {
+    protected Statement save(long clientId, long bankId, String filename, List<StatementTransaction> transactions) {
 
         Statement statement = null;
         var statementOption = statementRepository.findByOwnerIdAndBankIdAndFilename(clientId, bankId, filename);
         if (!statementOption.isPresent()) {
             statement = Statement.builder()
-                                .filename(filename)
-                                .clientId(clientId)
-                                .bankId(bankId)
-                                .processedAt(Clock.systemUTC().instant())
-                                .build();
+                    .filename(filename)
+                    .clientId(clientId)
+                    .bankId(bankId)
+                    .processedAt(Clock.systemUTC().instant())
+                    .build();
             statement = statementRepository.save(statement);
-        }else{
+        } else {
             statement = statementOption.get();
             statement.setProcessedAt(Clock.systemUTC().instant());
             statementRepository.updateProcessedAtById(statement.getProcessedAt(), statement.getId());
             statementTransactionRepository.deleteAllByStatementId(statement.getId());
         }
 
-        for (StatementTransaction transaction:transactions) {
+        for (StatementTransaction transaction : transactions) {
             transaction.setStatementId(statement.getId());
             statementTransactionRepository.save(transaction);
         }
@@ -149,7 +129,7 @@ public class StatementService {
     }
 
     @Transactional
-    public void delete(long statementId){
+    public void delete(long statementId) {
         var statementOption = statementRepository.findById(statementId);
         if (statementOption.isPresent()) {
             statementTransactionRepository.deleteAllByStatementId(statementId);
@@ -157,11 +137,11 @@ public class StatementService {
         }
     }
 
-    public List<Statement> findAll(){
+    public List<Statement> findAll() {
         return statementRepository.findAll();
     }
 
-    public Statement findById(Long id){
+    public Statement findById(Long id) {
         return statementRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(Statement.class, id));
     }
@@ -176,6 +156,39 @@ public class StatementService {
                 return true;
         }
         return false;
+    }
+
+    protected StatementView convertToModel(Statement obj) {
+        return modelMapper.map(obj, StatementView.class);
+    }
+
+    protected List<StatementTransactionView> convertToModel(List<StatementTransaction> list) {
+        return list.stream().map(transaction -> {
+            return modelMapper.map(transaction, StatementTransactionView.class);
+        }).collect(Collectors.toList());
+    }
+
+    private void validateHeader(BufferedReader reader, Map<String, String> columnMap) throws ParseCSVException {
+        List<String> header = null;
+
+        try {
+            reader.mark(1024);
+            String line = reader.readLine().replace("\"", "");
+            header = Arrays.asList(line.split(","));
+            reader.reset();
+
+        }catch(IOException e){
+            throw new ParseCSVException(e.getMessage());
+        }
+
+        if (columnMap == null || header == null)
+            throw new ParseCSVException("Headers and Column mapping should be defined.");
+
+        for (String key:columnMap.keySet()) {
+            if (!header.contains(key)){
+                throw new ParseCSVException("Header " + key + " is required. ");
+            }
+        }
     }
 
 }
