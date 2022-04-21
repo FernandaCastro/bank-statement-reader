@@ -1,8 +1,10 @@
 package com.fcastro.statement;
 
-import com.fcastro.statement.transaction.StatementTransactionView;
+import com.fcastro.exception.ResourceNotFoundException;
+import com.fcastro.statement.transaction.StatementTransaction;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -20,8 +22,9 @@ import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.*;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.BDDMockito.given;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -34,8 +37,9 @@ public class StatementControllerTest {
     @MockBean
     private StatementService statementService;
 
+    @SpyBean private ModelMapper modelMapper;
     @SpyBean private StatementViewAssembler assembler;
-    @SpyBean private StatementUploadResponseModelAssembler uploadResponseAssembler;
+    @SpyBean private StatementUploadViewModelAssembler uploadResponseAssembler;
 
     @Test
     public void givenStatementUploadResponse_whenUpload_shouldReturnSuccess() throws Exception {
@@ -48,25 +52,23 @@ public class StatementControllerTest {
                 "content".getBytes()
         );
 
-        StatementView statement = StatementView.builder()
-                .id(1)
-                .build();
+        StatementView statementView = StatementView.builder().id(1).build();
+        Statement statement = Statement.builder().id(1L).build();
 
-        List<StatementTransactionView> transactions = new ArrayList<>();
-        transactions.add(StatementTransactionView.builder()
-                .statementId(1)
-                .build());
+        List<StatementTransaction> transactions = new ArrayList<>();
+        transactions.add(StatementTransaction.builder().statementId(1).build());
 
         Map<String, Double> sumCategories = new HashMap<>();
         sumCategories.put("category", 1.00);
 
-        StatementUploadResponse uploadResponse = StatementUploadResponse.builder()
+        StatementUpload uploadDTO = StatementUpload.builder()
                 .statement(statement)
                 .transactions(transactions)
                 .summary(sumCategories)
                 .build();
 
-        org.mockito.BDDMockito.given(statementService.uploadStatements(anyLong(), anyLong(), anyString(), ArgumentMatchers.any(BufferedReader.class))).willReturn(uploadResponse);
+        given(statementService.processStatementFile(anyLong(), anyLong(), anyString(), ArgumentMatchers.any(BufferedReader.class))).willReturn(uploadDTO);
+        given(statementService.save(anyLong(), anyLong(), anyString(), anyList())).willReturn(statement);
 
         mockMvc.perform(MockMvcRequestBuilders.multipart("/api/v1/statements/upload")
                         .file(file)
@@ -81,4 +83,12 @@ public class StatementControllerTest {
                 .andExpect(jsonPath("$._links.transactions.href", containsString("/api/v1/statements/1/transactions")));;
     }
 
+    @Test
+    public void givenNotExistsStatement_whenGet_shouldReturnNotFound() throws Exception{
+        //given
+        given(statementService.findById(anyLong())).willThrow(ResourceNotFoundException.class);
+
+        //when //then
+        mockMvc.perform(get("/statements/{id}", 1)).andExpect(status().isNotFound());
+    }
 }

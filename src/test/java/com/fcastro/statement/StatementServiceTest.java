@@ -1,11 +1,13 @@
 package com.fcastro.statement;
 
 import com.fcastro.exception.ParseCSVException;
-import com.fcastro.statement.config.StatementConfig;
-import com.fcastro.statement.config.category.StatementConfigCategory;
-import com.fcastro.statement.config.category.StatementConfigCategoryRepository;
+import com.fcastro.statementconfig.StatementConfig;
+import com.fcastro.statementconfig.category.StatementConfigCategory;
+import com.fcastro.statementconfig.category.StatementConfigCategoryRepository;
 import com.fcastro.statement.transaction.StatementTransaction;
+import com.fcastro.statement.transaction.StatementTransactionRepository;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -17,34 +19,45 @@ import org.springframework.mock.web.MockMultipartFile;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willDoNothing;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class StatementServiceTest {
 
     @Mock private StatementConfigCategoryRepository statementCategoryRepository;
+    @Mock private StatementRepository statementRepository;
+    @Mock private StatementTransactionRepository statementTransactionRepository;
 
     @InjectMocks
     private StatementService statementService;
 
-    @Test
-    public void givenGoodFileData_whenRead_ShouldReturnStatementTransactionList() throws Exception{
+    private StatementConfig statementConfig;
 
-        StatementConfig statementConfig = StatementConfig.builder()
-                .id(1)
-                .bankId(1)
-                .clientId(1)
+    @BeforeEach
+    private void createStatementConfig(){
+        this.statementConfig = StatementConfig.builder()
+                .id(1L)
+                .bankId(1L)
+                .clientId(1L)
                 .descriptionField("Histórico")
                 .documentIdField("Número do documento")
                 .transactionDateField("Data")
                 .transactionValueField("Valor")
                 .build();
+    }
+
+    @Test
+    public void givenGoodFileData_whenRead_ShouldReturnStatementTransactionList() throws Exception{
 
         String content = "\"Data\",\"Dependencia Origem\",\"Histórico\",\"Data do Balancete\",\"Número do documento\",\"Valor\",\n" +
                 "\"28/10/2020\",\"\",\"Saldo Anterior\",\"\",\"0\",\"1750.31\",\n" +
@@ -72,15 +85,6 @@ public class StatementServiceTest {
 
     @Test
     public void givenBadFileData_whenRead_ShouldReturnParseCSVException() throws Exception{
-        StatementConfig statementConfig = StatementConfig.builder()
-                .id(1)
-                .bankId(1)
-                .clientId(1)
-                .descriptionField("Histórico")
-                .documentIdField("Número do documento")
-                .transactionDateField("Data")
-                .transactionValueField("Valor")
-                .build();
 
         String content = "\"Data\",\"Dependencia Origem\",\"MISSING_HEADER\",\"Data do Balancete\",\"Número do documento\",\"Valor\",\n" +
                          "\"28/10/2020\",\"\",\"Saldo Anterior\",\"\",\"0\",\"1750.31\",\n" +
@@ -105,12 +109,6 @@ public class StatementServiceTest {
     @Test
     public void givenTransactionList_whenCategorizeIncome_ShouldReturnIncomeSummary() {
 
-        StatementConfig statementConfig = StatementConfig.builder()
-                .id(1)
-                .bankId(1)
-                .clientId(1)
-                .build();
-
         List<StatementConfigCategory> categories = new ArrayList<>();
         categories.add(StatementConfigCategory.builder().name("income").tags("Benefício INSS, Crédito em conta").build());
 
@@ -133,12 +131,6 @@ public class StatementServiceTest {
     @Test
     public void givenTransactionList_whenCategorize_ShouldReturnCategorySummary() {
 
-        StatementConfig statementConfig = StatementConfig.builder()
-                .id(1)
-                .bankId(1)
-                .clientId(1)
-                .build();
-
         List<StatementConfigCategory> categories = new ArrayList<>();
         categories.add(StatementConfigCategory.builder().name("home").tags("BB Seguro Auto,SKY SERV").build());
 
@@ -159,12 +151,6 @@ public class StatementServiceTest {
 
     @Test
     public void givenTransactionList_whenCategorizeByNegateArgument_ShouldReturnDistinctCategoriesSummary() {
-
-        StatementConfig statementConfig = StatementConfig.builder()
-                .id(1)
-                .bankId(1)
-                .clientId(1)
-                .build();
 
         List<StatementConfigCategory> categories = new ArrayList<>();
         categories.add(StatementConfigCategory.builder().name("supermarket").tags("SUPERMERC").build());
@@ -187,5 +173,69 @@ public class StatementServiceTest {
 
         Assertions.assertEquals(-200.00, summary.get("personal"), 0);
         Assertions.assertEquals(-1200.00, summary.get("supermarket"), 0);
+    }
+
+    @Test
+    public void  givenExistingStatement_whenSave_shouldReturnUpdatedStatement(){
+
+        //given
+        given(statementRepository.findByOwnerIdAndBankIdAndFilename(anyLong(), anyLong(), anyString())).willReturn(Optional.of(Statement.builder().id(1L).build()));
+        willDoNothing().given(statementTransactionRepository).deleteAllByStatementId(anyLong());
+        given(statementRepository.save(any(Statement.class))).willReturn(Statement.builder().id(1L).build());
+        given(statementTransactionRepository.save(any(StatementTransaction.class))).willReturn(StatementTransaction.builder().id(1L).build());
+
+        List<StatementTransaction> transactions = new ArrayList<>();
+        transactions.add(StatementTransaction.builder().id(1).build());
+        transactions.add(StatementTransaction.builder().id(2).build());
+
+        //when
+        statementService.save(1, 1, "filename.csv", transactions);
+
+        //then
+        verify(statementRepository, times(1)).findByOwnerIdAndBankIdAndFilename(anyLong(), anyLong(), anyString());
+        verify(statementRepository, times(1)).save(any(Statement.class));
+        verify(statementTransactionRepository, times(1)).deleteAllByStatementId(anyLong());
+        verify(statementTransactionRepository, times(2)).save(any(StatementTransaction.class));
+    }
+
+    @Test
+    public void givenNewStatement_whenSave_shouldReturnNewStatement(){
+        //given
+        given(statementRepository.findByOwnerIdAndBankIdAndFilename(anyLong(), anyLong(), anyString())).willReturn(Optional.ofNullable(null));
+        given(statementRepository.save(any(Statement.class))).willReturn(Statement.builder().id(1L).build());
+        given(statementTransactionRepository.save(any(StatementTransaction.class))).willReturn(StatementTransaction.builder().id(1L).build());
+
+        List<StatementTransaction> transactions = new ArrayList<>();
+        transactions.add(StatementTransaction.builder().id(1).build());
+        transactions.add(StatementTransaction.builder().id(2).build());
+
+        //when
+        statementService.save(1, 1, "filename.csv", transactions);
+
+        //then
+        verify(statementRepository, times(1)).findByOwnerIdAndBankIdAndFilename(anyLong(), anyLong(), anyString());
+        verify(statementRepository, times(1)).save(any(Statement.class));
+        verify(statementTransactionRepository, never()).deleteAllByStatementId(anyLong());
+        verify(statementTransactionRepository, times(2)).save(any(StatementTransaction.class));
+    }
+
+    @Test
+    public void givenException_whenSave_shouldRollback(){
+        //given
+        given(statementRepository.findByOwnerIdAndBankIdAndFilename(anyLong(), anyLong(), anyString())).willReturn(Optional.of(Statement.builder().id(1L).build()));
+        given(statementRepository.save(any(Statement.class))).willReturn(Statement.builder().id(1L).build());
+        willDoNothing().given(statementTransactionRepository).deleteAllByStatementId(anyLong());
+        given(statementTransactionRepository.save(any(StatementTransaction.class))).willThrow(SQLException.class);
+
+        List<StatementTransaction> transactions = new ArrayList<>();
+        transactions.add(StatementTransaction.builder().id(1).build());
+        transactions.add(StatementTransaction.builder().id(2).build());
+
+        //when
+        statementService.save(1, 1, "filename.csv", transactions);
+
+        //then
+
+
     }
 }

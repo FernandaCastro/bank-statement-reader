@@ -4,16 +4,11 @@ import com.fcastro.exception.ResourceNotFoundException;
 import lombok.AllArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.hateoas.CollectionModel;
-import org.springframework.hateoas.EntityModel;
-import org.springframework.hateoas.IanaLinkRelations;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
-
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @RestController
 @RequestMapping("api/v1/clients")
@@ -21,72 +16,64 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 public class ClientController {
 
     private final ClientRepository repository;
-    private final ClientViewAssembler assembler;
+    private final ClientModelAssembler assembler;
     private final ModelMapper modelMapper;
 
     @GetMapping
-    CollectionModel<EntityModel<ClientView>> all() {
+    ResponseEntity<CollectionModel<ClientModel>> all() {
 
-        List<EntityModel<ClientView>> resources = repository.findAll().stream()
-                .map(resource ->{
-                    return assembler.toModel(convertToDTO(resource));
-                })
-                .collect(Collectors.toList());
+        List<Client> clients = repository.findAll();
 
-        return CollectionModel.of(resources, linkTo(methodOn(ClientController.class).all()).withSelfRel());
+        return new ResponseEntity<>(
+                assembler.toCollectionModel(clients),
+                HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
-    EntityModel<ClientView> one(@PathVariable Long id) {
+    ResponseEntity<ClientModel> one(@PathVariable Long id) {
 
-        Client resource = repository.findById(id)
+        return repository.findById(id)
+                .map(assembler::toModel)
+                .map(ResponseEntity::ok)
                 .orElseThrow(() -> new ResourceNotFoundException(Client.class, id));
-
-        return assembler.toModel(convertToDTO(resource));
     }
 
     @PostMapping
-    ResponseEntity<?> newResource(@RequestBody ClientView newObj) {
+    ResponseEntity<?> create(@RequestBody ClientModel newClient) {
 
-        Client client = repository.save(convertToObject(newObj));
-        EntityModel<ClientView> entityModel =  assembler.toModel(convertToDTO(client));
+        Client client = repository.save(convertToObject(newClient));
 
-        return ResponseEntity.created(entityModel.getRequiredLink(IanaLinkRelations.SELF).toUri())
-                .body(entityModel);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(assembler.toModel(client));
     }
 
     @PutMapping("/{id}")
-    ResponseEntity<?> replace(@RequestBody ClientView newObj, @PathVariable Long id) {
+    ResponseEntity<?> replace(@RequestBody ClientModel newClient, @PathVariable Long id) {
 
-        Client updatedResource = repository.findById(id)
+        Client client = repository.findById(id)
                 .map(resource -> {
-                    resource.setName(newObj.getName());
+                    resource.setName(newClient.getName());
                     return repository.save(resource);
                 })
                 .orElseGet(() -> {
-                    newObj.setId(id);
-                    return repository.save(convertToObject(newObj));
+                    newClient.setId(id);
+                    return repository.save(convertToObject(newClient));
                 });
 
-        EntityModel<ClientView> entityModel = assembler.toModel(convertToDTO(updatedResource));
-
         return ResponseEntity
-                .created(entityModel.getRequiredLink(IanaLinkRelations.SELF).toUri())
-                .body(entityModel);
+                .status(HttpStatus.CREATED)
+                .body(assembler.toModel(client));
     }
 
     @DeleteMapping("/{id}")
     ResponseEntity<?> delete(@PathVariable Long id) {
-        repository.deleteById(id);
 
+        repository.deleteById(id);
         return ResponseEntity.noContent().build();
     }
 
-    private ClientView convertToDTO(Client obj){
-        return modelMapper.map(obj, ClientView.class);
-    }
-
-    private Client convertToObject(ClientView obj){
+    private Client convertToObject(ClientModel obj){
         return modelMapper.map(obj, Client.class);
     }
 }

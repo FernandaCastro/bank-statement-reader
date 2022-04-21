@@ -1,6 +1,9 @@
 package com.fcastro.statement;
 
+import com.fcastro.statement.transaction.StatementTransaction;
+import com.fcastro.statement.transaction.StatementTransactionView;
 import lombok.AllArgsConstructor;
+import org.modelmapper.ModelMapper;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.IanaLinkRelations;
@@ -23,8 +26,9 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 @AllArgsConstructor
 public class StatementController {
 
+    private final ModelMapper modelMapper;
     private final StatementViewAssembler assembler;
-    private final StatementUploadResponseModelAssembler uploadResponseAssembler;
+    private final StatementUploadViewModelAssembler uploadResponseAssembler;
     private final StatementService service;
 
     @GetMapping
@@ -32,7 +36,7 @@ public class StatementController {
 
         List<EntityModel<StatementView>> resources = service.findAll().stream()
                 .map(resource -> {
-                        return assembler.toModel(service.convertToModel(resource));
+                        return assembler.toModel(convertToModel(resource));
                 })
                 .collect(Collectors.toList());
 
@@ -44,7 +48,7 @@ public class StatementController {
 
         Statement resource = service.findById(id);
 
-        return assembler.toModel(service.convertToModel(resource));
+        return assembler.toModel(convertToModel(resource));
     }
 
     @DeleteMapping("/{id}")
@@ -67,13 +71,29 @@ public class StatementController {
             throw new IllegalStateException("File [" + file.getName() + "] could not be read.");
         }
 
-        StatementUploadResponse uploadResponse = service.uploadStatements(clientId, bankId, file.getName(), reader);
+        StatementUpload uploadDto = service.processStatementFile(clientId, bankId, file.getName(), reader);
+        Statement statement = service.save(clientId, bankId, file.getName(), uploadDto.getTransactions());
+        uploadDto.setStatement(statement);
 
-        EntityModel<StatementUploadResponse> entityModel =  uploadResponseAssembler.toModel(uploadResponse);
+        EntityModel<StatementUploadView> entityModel =  uploadResponseAssembler.toModel(convertToModel(uploadDto));
 
         return ResponseEntity.created(entityModel.getRequiredLink(IanaLinkRelations.SELF).toUri())
                 .body(entityModel);
 
+    }
+
+    private StatementView convertToModel(Statement obj) {
+        return modelMapper.map(obj, StatementView.class);
+    }
+
+    private List<StatementTransactionView> convertToModel(List<StatementTransaction> list) {
+        return list.stream().map(transaction -> {
+            return modelMapper.map(transaction, StatementTransactionView.class);
+        }).collect(Collectors.toList());
+    }
+
+    private StatementUploadView convertToModel(StatementUpload obj) {
+        return modelMapper.map(obj, StatementUploadView.class);
     }
 }
 

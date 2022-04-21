@@ -25,6 +25,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+//TestRestTemplate sobe o servidor Spring inteiro
+//@AutoConfigureMockMVC : Spring handles the incoming HTTP request and hands it off to your controller. almost full stack is used.
+
 @WebMvcTest(controllers = BankController.class)
 public class BankControllerTest {
 
@@ -34,7 +37,7 @@ public class BankControllerTest {
     @MockBean
     private BankRepository bankRepository;
     @SpyBean
-    private BankViewAssembler assembler;
+    private BankModelAssembler assembler;
     @SpyBean
     private ModelMapper modelMapper;
 
@@ -43,7 +46,7 @@ public class BankControllerTest {
         int bankId = 1;
         Bank bank = Bank.builder()
                 .id(bankId)
-                .name("BB")
+                .name("Banco do Brasil")
                 .build();
 
         given(bankRepository.findById(anyLong())).willReturn(Optional.of(bank));
@@ -51,14 +54,14 @@ public class BankControllerTest {
         mockMvc.perform(get("/api/v1/banks/{id}", bankId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id", is(bankId)))
-                .andExpect(jsonPath("$.name", is("BB")))
+                .andExpect(jsonPath("$.name", is("Banco do Brasil")))
                 .andExpect(jsonPath("$._links.self.href", containsString(Strings.concat("/api/v1/banks/", bankId))));
     }
 
     @Test
     public void givenBankList_whenGetBanks_shouldReturnBankList() throws Exception{
         List<Bank> banks = new ArrayList<>();
-        banks.add(Bank.builder().id(1).name("BB").build());
+        banks.add(Bank.builder().id(1).name("Banco do Brasil").build());
         banks.add(Bank.builder().id(2).name("Itaú").build());
 
         given(bankRepository.findAll()).willReturn(banks);
@@ -66,7 +69,7 @@ public class BankControllerTest {
         mockMvc.perform(get("/api/v1/banks"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$._embedded.bankModelList", hasSize(2)))
-                .andExpect(jsonPath("$._embedded.bankModelList[0].name", is("BB")))
+                .andExpect(jsonPath("$._embedded.bankModelList[0].name", is("Banco do Brasil")))
                 .andExpect(jsonPath("$._embedded.bankModelList[1].name", is("Itaú")))
                 .andExpect(jsonPath("$._links.self.href", containsString("/api/v1/banks")));
     }
@@ -89,14 +92,14 @@ public class BankControllerTest {
                         .name("HSBC")
                         .build();
 
-        BankView bankView = modelMapper.map(bank, BankView.class);
+        BankModel bankModel = modelMapper.map(bank, BankModel.class);
         bank.setId(bankId);
 
         given(bankRepository.save(any())).willReturn(bank);
 
         mockMvc.perform(post("/api/v1/banks")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(JsonUtil.toJson(bankView)))
+                        .content(JsonUtil.toJson(bankModel)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id", is(bankId)))
                 .andExpect(jsonPath("$.name", is("HSBC")))
@@ -111,14 +114,14 @@ public class BankControllerTest {
                 .name("HSBC")
                 .build();
 
-        BankView bankView = modelMapper.map(bank, BankView.class);
+        BankModel bankModel = modelMapper.map(bank, BankModel.class);
 
         given(bankRepository.findById(anyLong())).willReturn(Optional.of(bank));
         given(bankRepository.save(any())).willReturn(bank);
 
         mockMvc.perform(put("/api/v1/banks/{id}", bankId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(JsonUtil.toJson(bankView)))
+                        .content(JsonUtil.toJson(bankModel)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id", is(bankId)))
                 .andExpect(jsonPath("$.name", is("HSBC")))
@@ -133,14 +136,14 @@ public class BankControllerTest {
                 .name("HSBC")
                 .build();
 
-        BankView bankView = modelMapper.map(bank, BankView.class);
+        BankModel bankModel = modelMapper.map(bank, BankModel.class);
 
         given(bankRepository.findById(anyLong())).willReturn(Optional.ofNullable(null));
         given(bankRepository.save(any())).willReturn(bank);
 
         mockMvc.perform(put("/api/v1/banks/{id}", bankId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(JsonUtil.toJson(bankView)))
+                        .content(JsonUtil.toJson(bankModel)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id", is(bankId)))
                 .andExpect(jsonPath("$.name", is("HSBC")))

@@ -1,8 +1,8 @@
-package com.fcastro.statement.config.category;
+package com.fcastro.statementconfig.category;
 
 import com.fcastro.exception.ResourceNotFoundException;
-import com.fcastro.statement.config.StatementConfig;
-import com.fcastro.statement.config.StatementConfigRepository;
+import com.fcastro.statementconfig.StatementConfig;
+import com.fcastro.statementconfig.StatementConfigRepository;
 import lombok.AllArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.hateoas.CollectionModel;

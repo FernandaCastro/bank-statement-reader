@@ -2,17 +2,16 @@ package com.fcastro.statement;
 
 import com.fcastro.exception.ParseCSVException;
 import com.fcastro.exception.ResourceNotFoundException;
-import com.fcastro.statement.config.StatementConfig;
-import com.fcastro.statement.config.category.StatementConfigCategory;
-import com.fcastro.statement.config.category.StatementConfigCategoryRepository;
+import com.fcastro.statementconfig.StatementConfig;
+import com.fcastro.statementconfig.StatementConfigRepository;
+import com.fcastro.statementconfig.category.StatementConfigCategory;
+import com.fcastro.statementconfig.category.StatementConfigCategoryRepository;
 import com.fcastro.statement.transaction.StatementTransaction;
-import com.fcastro.statement.transaction.StatementTransactionView;
 import com.fcastro.statement.transaction.StatementTransactionRepository;
 import com.opencsv.bean.CsvToBean;
 import com.opencsv.bean.CsvToBeanBuilder;
 import com.opencsv.bean.HeaderColumnNameTranslateMappingStrategy;
 import lombok.AllArgsConstructor;
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,19 +22,17 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
 public class StatementService {
 
-    private final ModelMapper modelMapper;
     private final StatementRepository statementRepository;
     private final StatementTransactionRepository statementTransactionRepository;
-    private final com.fcastro.statement.config.StatementConfigRepository statementConfigRepository;
+    private final StatementConfigRepository statementConfigRepository;
     private final StatementConfigCategoryRepository statementCategoryConfigRepository;
 
-    public StatementUploadResponse uploadStatements(long clientId, long bankId, String filename, BufferedReader reader) {
+    public StatementUpload processStatementFile(long clientId, long bankId, String filename, BufferedReader reader) {
 
         StatementConfig statementConfig = statementConfigRepository.findByBankIdAndClientId(bankId, clientId);
         if (statementConfig==null){
@@ -44,11 +41,11 @@ public class StatementService {
 
         List<StatementTransaction> transactions = read(statementConfig, reader);
         Map<String, Double> sumCategories = categorize(statementConfig, transactions);
-        Statement statement = save(clientId, bankId, filename, transactions);
+        //Statement statement = save(clientId, bankId, filename, transactions);
 
-        return StatementUploadResponse.builder()
-                .statement(convertToModel(statement))
-                .transactions(convertToModel(transactions))
+        return StatementUpload.builder()
+                //.statement(convertToModel(statement))
+                .transactions(transactions)
                 .summary(sumCategories)
                 .build();
     }
@@ -102,7 +99,7 @@ public class StatementService {
     }
 
     @Transactional
-    protected Statement save(long clientId, long bankId, String filename, List<StatementTransaction> transactions) {
+    public Statement save(long clientId, long bankId, String filename, List<StatementTransaction> transactions) {
 
         Statement statement = null;
         var statementOption = statementRepository.findByOwnerIdAndBankIdAndFilename(clientId, bankId, filename);
@@ -117,7 +114,8 @@ public class StatementService {
         } else {
             statement = statementOption.get();
             statement.setProcessedAt(Clock.systemUTC().instant());
-            statementRepository.updateProcessedAtById(statement.getProcessedAt(), statement.getId());
+            //statementRepository.updateProcessedAtById(statement.getProcessedAt(), statement.getId());
+            statement = statementRepository.save(statement);
             statementTransactionRepository.deleteAllByStatementId(statement.getId());
         }
 
@@ -156,16 +154,6 @@ public class StatementService {
                 return true;
         }
         return false;
-    }
-
-    protected StatementView convertToModel(Statement obj) {
-        return modelMapper.map(obj, StatementView.class);
-    }
-
-    protected List<StatementTransactionView> convertToModel(List<StatementTransaction> list) {
-        return list.stream().map(transaction -> {
-            return modelMapper.map(transaction, StatementTransactionView.class);
-        }).collect(Collectors.toList());
     }
 
     private void validateHeader(BufferedReader reader, Map<String, String> columnMap) throws ParseCSVException {

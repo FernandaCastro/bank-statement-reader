@@ -9,10 +9,10 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @Component
-class StatementUploadResponseModelAssembler implements RepresentationModelAssembler<StatementUploadResponse, EntityModel<StatementUploadResponse>> {
+class StatementUploadViewModelAssembler implements RepresentationModelAssembler<StatementUploadView, EntityModel<StatementUploadView>> {
 
     @Override
-    public EntityModel<StatementUploadResponse> toModel(StatementUploadResponse object) {
+    public EntityModel<StatementUploadView> toModel(StatementUploadView object) {
 
         return EntityModel.of(object,
                 linkTo(methodOn(StatementController.class).one(object.getStatement().getId())).withSelfRel(),

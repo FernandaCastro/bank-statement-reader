@@ -1,4 +1,4 @@
-package com.fcastro.statement.config.category;
+package com.fcastro.statementconfig.category;
 
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;

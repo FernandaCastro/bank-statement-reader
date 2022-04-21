@@ -1,4 +1,4 @@
-package com.fcastro.statement.config.category;
+package com.fcastro.statementconfig.category;
 
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.server.RepresentationModelAssembler;

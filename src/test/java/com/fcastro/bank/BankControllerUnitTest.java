@@ -8,8 +8,8 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
-import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.IanaLinkRelations;
+import org.springframework.http.ResponseEntity;
 
 import java.util.Optional;
 
@@ -21,7 +21,7 @@ import static org.mockito.BDDMockito.given;
 public class BankControllerUnitTest {
 
     @Mock private BankRepository bankRepository;
-    @Spy private BankViewAssembler assembler;
+    @Spy private BankModelAssembler assembler;
     @Spy private ModelMapper modelMapper;
 
     @InjectMocks
@@ -38,13 +38,13 @@ public class BankControllerUnitTest {
         given(bankRepository.findById(bankId))
                 .willReturn(Optional.of(bank));
 
-        EntityModel<BankView> result = bankController.one(bankId);
+        ResponseEntity<BankModel> result = bankController.one(bankId);
 
         assertThat(result, notNullValue());
-        assertThat(result.getContent(), notNullValue());
-        assertThat(result.getContent().getId(), equalTo(bankId));
-        assertThat(result.getContent().getName(), equalTo("BB"));
-        assertThat(result.getLinks(), notNullValue());
-        assertThat(result.getRequiredLink(IanaLinkRelations.SELF).toUri(), hasToString(Strings.concat("/api/v1/banks/", bankId)));
+        assertThat(result.getBody(), notNullValue());
+        assertThat(result.getBody().getId(), equalTo(bankId));
+        assertThat(result.getBody().getName(), equalTo("BB"));
+        assertThat(result.getBody().getLinks(), notNullValue());
+        assertThat(result.getBody().getRequiredLink(IanaLinkRelations.SELF).toUri(), hasToString(Strings.concat("/api/v1/banks/", bankId)));
     }
 }
