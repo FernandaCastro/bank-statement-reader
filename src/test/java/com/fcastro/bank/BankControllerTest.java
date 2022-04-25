@@ -25,9 +25,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-//TestRestTemplate sobe o servidor Spring inteiro
-//@AutoConfigureMockMVC : Spring handles the incoming HTTP request and hands it off to your controller. almost full stack is used.
-
 @WebMvcTest(controllers = BankController.class)
 public class BankControllerTest {
 
@@ -68,9 +65,9 @@ public class BankControllerTest {
 
         mockMvc.perform(get("/api/v1/banks"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$._embedded.bankModelList", hasSize(2)))
-                .andExpect(jsonPath("$._embedded.bankModelList[0].name", is("Banco do Brasil")))
-                .andExpect(jsonPath("$._embedded.bankModelList[1].name", is("Itaú")))
+                .andExpect(jsonPath("$._embedded.banks", hasSize(2)))
+                .andExpect(jsonPath("$._embedded.banks[0].name", is("Banco do Brasil")))
+                .andExpect(jsonPath("$._embedded.banks[1].name", is("Itaú")))
                 .andExpect(jsonPath("$._links.self.href", containsString("/api/v1/banks")));
     }
 

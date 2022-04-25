@@ -1,99 +1,80 @@
 package com.fcastro.statementconfig;
 
-import com.fcastro.client.Client;
-import com.fcastro.client.ClientRepository;
+import com.fcastro.bank.Bank;
 import com.fcastro.exception.ResourceNotFoundException;
 import lombok.AllArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.hateoas.CollectionModel;
-import org.springframework.hateoas.EntityModel;
-import org.springframework.hateoas.IanaLinkRelations;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
-
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @RestController
 @RequestMapping("api/v1/configurations")
 @AllArgsConstructor
 public class StatementConfigController {
 
-    private final StatementConfigRepository statementConfigRepository;
-    private final ClientRepository clientRepository;
-    private final StatementConfigModelAssembler configAssembler;
+    private final StatementConfigRepository repository;
+    private final StatementConfigModelAssembler assembler;
     private final ModelMapper modelMapper;
 
     @GetMapping
-    CollectionModel<EntityModel<StatementConfigModel>> all(@RequestParam(required = true) long clientId) {
+    ResponseEntity<CollectionModel<StatementConfigModel>> all(@RequestParam(required = true) long clientId) {
 
-        clientRepository.findById(clientId)
-                .orElseThrow(() -> new ResourceNotFoundException(Client.class, clientId));
+        List<StatementConfig> configs = repository.findAllByClientId(clientId);
 
-        List<EntityModel<StatementConfigModel>> configs = statementConfigRepository.findAllByClientId(clientId).stream()
-                .map(resource -> {
-                    return configAssembler.toModel(convertToDTO(resource));
-                })
-                .collect(Collectors.toList());
-
-        return CollectionModel.of(configs, linkTo(methodOn(StatementConfigController.class).all(clientId)).withSelfRel());
+        return new ResponseEntity<>(
+                assembler.toCollectionModel(configs),
+                HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
-    EntityModel<StatementConfigModel> one(@PathVariable Long id) {
+    ResponseEntity<StatementConfigModel> one(@PathVariable Long id) {
 
-        StatementConfig config = statementConfigRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(StatementConfig.class, id));
-
-        return configAssembler.toModel(convertToDTO(config));
+        return repository.findById(id)
+                .map(assembler::toModel)
+                .map(ResponseEntity::ok)
+                .orElseThrow(() -> new ResourceNotFoundException(Bank.class, id));
     }
 
     @PostMapping
-    ResponseEntity<?> newConfig(@RequestBody StatementConfigModel newObj) {
+    ResponseEntity<?> create(@RequestBody StatementConfigModel newConfig) {
 
-        StatementConfig statementConfig = statementConfigRepository.save(convertToObject(newObj));
+        StatementConfig config = repository.save(convertToObject(newConfig));
 
-        EntityModel<StatementConfigModel> entityModel =  configAssembler.toModel(convertToDTO(statementConfig));
-
-        return ResponseEntity.created(entityModel.getRequiredLink(IanaLinkRelations.SELF).toUri())
-                .body(entityModel);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(assembler.toModel(config));
     }
 
     @PutMapping("/{id}")
-    ResponseEntity<?> replace(@RequestBody StatementConfig newObj, @PathVariable Long id) {
+    ResponseEntity<?> replace(@RequestBody StatementConfigModel newConfig, @PathVariable Long id) {
 
-        StatementConfig updatedResource = statementConfigRepository.findById(id)
+        StatementConfig updatedConfig = repository.findById(id)
                 .map(resource -> {
-                    resource.setDescriptionField(newObj.getDescriptionField());
-                    resource.setDocumentIdField(newObj.getDocumentIdField());
-                    resource.setTransactionDateField(newObj.getTransactionDateField());
-                    resource.setTransactionValueField(newObj.getTransactionValueField());
-                    return statementConfigRepository.save(resource);
+                    resource.setDescriptionField(newConfig.getDescriptionField());
+                    resource.setDocumentIdField(newConfig.getDocumentIdField());
+                    resource.setTransactionDateField(newConfig.getTransactionDateField());
+                    resource.setTransactionValueField(newConfig.getTransactionValueField());
+                    return repository.save(resource);
                 })
                 .orElseGet(() -> {
-                    newObj.setId(id);
-                    return statementConfigRepository.save(newObj);
+                    newConfig.setId(id);
+                    return repository.save(convertToObject(newConfig));
                 });
 
-        EntityModel<StatementConfigModel> entityModel = configAssembler.toModel(convertToDTO(updatedResource));
-
         return ResponseEntity
-                .created(entityModel.getRequiredLink(IanaLinkRelations.SELF).toUri())
-                .body(entityModel);
+                .status(HttpStatus.CREATED)
+                .body(assembler.toModel(updatedConfig));
     }
 
     @DeleteMapping("/{id}")
     ResponseEntity<?> delete(@PathVariable Long id) {
-        statementConfigRepository.deleteById(id);
+        repository.deleteById(id);
 
         return ResponseEntity.noContent().build();
-    }
-
-    private StatementConfigModel convertToDTO(StatementConfig obj){
-        return modelMapper.map(obj, StatementConfigModel.class);
     }
 
     private StatementConfig convertToObject(StatementConfigModel obj){

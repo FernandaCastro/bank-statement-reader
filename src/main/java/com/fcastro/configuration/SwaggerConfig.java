@@ -2,8 +2,9 @@ package com.fcastro.configuration;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RestController;
 import springfox.documentation.builders.ApiInfoBuilder;
-import springfox.documentation.builders.PathSelectors;
 import springfox.documentation.builders.RequestHandlerSelectors;
 import springfox.documentation.service.ApiInfo;
 import springfox.documentation.spi.DocumentationType;
@@ -17,9 +18,9 @@ public class SwaggerConfig {
                 .apiInfo(apiInfo())
                 .enable(true)
                 .select()
-                .apis(RequestHandlerSelectors.any())
-                .paths(PathSelectors.any())
-                .build();
+                .apis(RequestHandlerSelectors.withClassAnnotation(RestController.class))
+                .build()
+                .genericModelSubstitutes(ResponseEntity.class);
     }
 
     private ApiInfo apiInfo() {

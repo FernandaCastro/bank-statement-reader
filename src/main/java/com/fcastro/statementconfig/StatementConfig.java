@@ -1,13 +1,13 @@
-package com.fcastro.statement.config;
+package com.fcastro.statementconfig;
 
+import com.fcastro.statementconfig.category.StatementConfigCategory;
 import lombok.*;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
+import javax.persistence.*;
+import java.util.List;
 
 @Entity
+@Table(name="STATEMENT_CONFIG")
 @Getter @Setter
 @Builder(toBuilder = true)
 @NoArgsConstructor
@@ -16,11 +16,15 @@ public class StatementConfig {
 
     @Id
     @GeneratedValue(strategy= GenerationType.IDENTITY)
-    private long id;
-    private long clientId;
-    private long bankId;
+    private Long id;
     private String transactionDateField;
     private String transactionValueField;
     private String descriptionField;
     private String documentIdField;
+
+    private Long clientId;
+    private Long bankId;
+
+    @OneToMany(mappedBy="statementConfig")
+    private List<StatementConfigCategory> categories;
 }

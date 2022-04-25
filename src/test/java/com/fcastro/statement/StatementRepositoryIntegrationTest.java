@@ -25,7 +25,7 @@ public class StatementRepositoryIntegrationTest {
         entityManager.persistFlushFind(Statement.builder().clientId(1L).bankId(1L).filename("statement.csv").processedAt(Instant.now()).build());
 
         //when
-        Optional<Statement> foundStatement = statementRepository.findByOwnerIdAndBankIdAndFilename(1, 1, "statement.csv");
+        Optional<Statement> foundStatement = statementRepository.findByOwnerIdAndBankIdAndFilename(1L, 1L, "statement.csv");
 
         //then
         assertThat(foundStatement.get()).isNotNull();

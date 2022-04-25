@@ -1,11 +1,11 @@
 package com.fcastro.statement;
 
 import com.fcastro.exception.ParseCSVException;
+import com.fcastro.statement.transaction.StatementTransaction;
+import com.fcastro.statement.transaction.StatementTransactionRepository;
 import com.fcastro.statementconfig.StatementConfig;
 import com.fcastro.statementconfig.category.StatementConfigCategory;
 import com.fcastro.statementconfig.category.StatementConfigCategoryRepository;
-import com.fcastro.statement.transaction.StatementTransaction;
-import com.fcastro.statement.transaction.StatementTransactionRepository;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,7 +19,6 @@ import org.springframework.mock.web.MockMultipartFile;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -59,9 +58,9 @@ public class StatementServiceTest {
     @Test
     public void givenGoodFileData_whenRead_ShouldReturnStatementTransactionList() throws Exception{
 
-        String content = "\"Data\",\"Dependencia Origem\",\"Histórico\",\"Data do Balancete\",\"Número do documento\",\"Valor\",\n" +
-                "\"28/10/2020\",\"\",\"Saldo Anterior\",\"\",\"0\",\"1750.31\",\n" +
-                "\"04/12/2020\",\"\",\"TED-Crédito em Conta -  HOT ITAIPU ALI\",\"\",\"2\",\"1100\",\n";
+        String content = "\"Data\",\"Dependencia Origem\",\"Histórico\",\"Data do Balancete\",\"Número do documento\",\"Valor\",\r" +
+                "\"28/10/2020\",\"\",\"Saldo Anterior\",\"\",\"0\",\"1750.31\",\r" +
+                "\"04/12/2020\",\"\",\"TED-Crédito em Conta -  HOT ITAIPU ALI\",\"\",\"2\",\"1100.00\",\r";
 
         MockMultipartFile file
                 = new MockMultipartFile(
@@ -107,51 +106,60 @@ public class StatementServiceTest {
     }
 
     @Test
-    public void givenTransactionList_whenCategorizeIncome_ShouldReturnIncomeSummary() {
-
+    public void givenTransactionList_whenCategorizeIncome_ShouldMarkAsIncome() {
+        //given
         List<StatementConfigCategory> categories = new ArrayList<>();
         categories.add(StatementConfigCategory.builder().name("income").tags("Benefício INSS, Crédito em conta").build());
 
         given(statementCategoryRepository.findAllByStatementConfigId(anyLong())).willReturn(categories);
 
         List<StatementTransaction> transactions = new ArrayList<>();
-        transactions.add(StatementTransaction.builder().statementId(1).transactionDate("28/11/2020").description("Saldo Anterior").documentId("0").transactionValue(1750.31).build());
-        transactions.add(StatementTransaction.builder().statementId(1).transactionDate("31/12/2020").description("S A L D O").documentId("0").transactionValue(44878.93).build());
+        transactions.add(StatementTransaction.builder().statementId(1L).transactionDate("28/11/2020").description("Saldo Anterior").documentId("0").transactionValue(1750.31).build());
+        transactions.add(StatementTransaction.builder().statementId(1L).transactionDate("31/12/2020").description("S A L D O").documentId("0").transactionValue(44878.93).build());
 
         //INCOME
-        transactions.add(StatementTransaction.builder().statementId(1).transactionDate("03/12/2020").description("Benefício INSS").documentId("1").transactionValue(50000.00).build());
-        transactions.add(StatementTransaction.builder().statementId(1).transactionDate("04/12/2020").description("TED-Crédito em Conta").documentId("2").transactionValue(10000.00).build());
+        transactions.add(StatementTransaction.builder().statementId(1L).transactionDate("03/12/2020").description("Benefício INSS").documentId("1").transactionValue(50000.00).build());
+        transactions.add(StatementTransaction.builder().statementId(1L).transactionDate("04/12/2020").description("TED-Crédito em Conta").documentId("2").transactionValue(10000.00).build());
 
+        //when
+        transactions = statementService.categorize(statementConfig, transactions);
 
-        Map<String, Double> summary = statementService.categorize(statementConfig, transactions);
-
-        Assertions.assertEquals(60000.00, summary.get("income"), 0);
+        //then
+        assertThat(transactions.get(0).getCategory()).isBlank();
+        assertThat(transactions.get(1).getCategory()).isBlank();
+        assertThat(transactions.get(2).getCategory()).isEqualTo("income");
+        assertThat(transactions.get(3).getCategory()).isEqualTo("income");
     }
 
     @Test
-    public void givenTransactionList_whenCategorize_ShouldReturnCategorySummary() {
-
+    public void givenTransactionList_whenCategorize_ShouldMarkAsHome() {
+        //given
         List<StatementConfigCategory> categories = new ArrayList<>();
         categories.add(StatementConfigCategory.builder().name("home").tags("BB Seguro Auto,SKY SERV").build());
 
         given(statementCategoryRepository.findAllByStatementConfigId(anyLong())).willReturn(categories);
 
         List<StatementTransaction> transactions = new ArrayList<>();
-        transactions.add(StatementTransaction.builder().statementId(1).transactionDate("28/11/2020").description("Saldo Anterior").documentId("0").transactionValue(1750.31).build());
-        transactions.add(StatementTransaction.builder().statementId(1).transactionDate("31/12/2020").description("S A L D O").documentId("0").transactionValue(44878.93).build());
+        transactions.add(StatementTransaction.builder().statementId(1L).transactionDate("28/11/2020").description("Saldo Anterior").documentId("0").transactionValue(1750.31).build());
+        transactions.add(StatementTransaction.builder().statementId(1L).transactionDate("31/12/2020").description("S A L D O").documentId("0").transactionValue(44878.93).build());
 
         //HOME
-        transactions.add(StatementTransaction.builder().statementId(1).transactionDate("07/12/2020").description("BB Seguro Auto - SEGURO AUTO BB/MAPFRE").documentId("3").transactionValue(-300.80).build());
-        transactions.add(StatementTransaction.builder().statementId(1).transactionDate("08/12/2020").description("SKY SERV").documentId("4").transactionValue(-200.00).build());
+        transactions.add(StatementTransaction.builder().statementId(1L).transactionDate("07/12/2020").description("BB Seguro Auto - SEGURO AUTO BB/MAPFRE").documentId("3").transactionValue(-300.80).build());
+        transactions.add(StatementTransaction.builder().statementId(1L).transactionDate("08/12/2020").description("SKY SERV").documentId("4").transactionValue(-200.00).build());
 
-        Map<String, Double> summary = statementService.categorize(statementConfig, transactions);
+        //when
+        transactions = statementService.categorize(statementConfig, transactions);
 
-        Assertions.assertEquals(-500.80, summary.get("home"), 0);
+        //then
+        assertThat(transactions.get(0).getCategory()).isBlank();
+        assertThat(transactions.get(1).getCategory()).isBlank();
+        assertThat(transactions.get(2).getCategory()).isEqualTo("home");
+        assertThat(transactions.get(3).getCategory()).isEqualTo("home");
     }
 
     @Test
-    public void givenTransactionList_whenCategorizeByNegateArgument_ShouldReturnDistinctCategoriesSummary() {
-
+    public void givenTransactionList_whenCategorizeByNegateArgument_ShouldMarkDistinctCategories() {
+        //given
         List<StatementConfigCategory> categories = new ArrayList<>();
         categories.add(StatementConfigCategory.builder().name("supermarket").tags("SUPERMERC").build());
         categories.add(StatementConfigCategory.builder().name("personal").tags("!SUPERMERC, Compra com Cart").build());
@@ -162,17 +170,53 @@ public class StatementServiceTest {
         List<StatementTransaction> transactions = new ArrayList<>();
 
         //SUPERMARKET
-        transactions.add(StatementTransaction.builder().statementId(1).transactionDate("28/12/2020").description("Compra com Cartão - SUPERMERCADO ESPERAN").documentId("7").transactionValue(-600.00).build());
-        transactions.add(StatementTransaction.builder().statementId(1).transactionDate("31/12/2020").description("Compra com Cartão - 31/12 12:29 SUPERMERC GUANABARA").documentId("7").transactionValue(-600.00).build());
+        transactions.add(StatementTransaction.builder().statementId(1L).transactionDate("28/12/2020").description("Compra com Cartão - SUPERMERCADO ESPERAN").documentId("7").transactionValue(-600.00).build());
+        transactions.add(StatementTransaction.builder().statementId(1L).transactionDate("31/12/2020").description("Compra com Cartão - 31/12 12:29 SUPERMERC GUANABARA").documentId("7").transactionValue(-600.00).build());
 
         //PERSONAL
-        transactions.add(StatementTransaction.builder().statementId(1).transactionDate("21/12/2020").description("Compra com Cartão - 19/12 12:36 DRICA MODA INTIMA LT").documentId("6").transactionValue(-100.00).build());
-        transactions.add(StatementTransaction.builder().statementId(1).transactionDate("31/12/2020").description("Compra com Cartão - 19/12 12:36 CAROL MODA PRAIA LT").documentId("8").transactionValue(-100.00).build());
+        transactions.add(StatementTransaction.builder().statementId(1L).transactionDate("21/12/2020").description("Compra com Cartão - 19/12 12:36 DRICA MODA INTIMA LT").documentId("6").transactionValue(-100.00).build());
+        transactions.add(StatementTransaction.builder().statementId(1L).transactionDate("31/12/2020").description("Compra com Cartão - 19/12 12:36 CAROL MODA PRAIA LT").documentId("8").transactionValue(-100.00).build());
 
-        Map<String, Double> summary = statementService.categorize(statementConfig, transactions);
+        //when
+        transactions = statementService.categorize(statementConfig, transactions);
 
-        Assertions.assertEquals(-200.00, summary.get("personal"), 0);
+        //then
+        assertThat(transactions.get(0).getCategory()).isEqualTo("supermarket");
+        assertThat(transactions.get(1).getCategory()).isEqualTo("supermarket");
+        assertThat(transactions.get(2).getCategory()).isEqualTo("personal");
+        assertThat(transactions.get(3).getCategory()).isEqualTo("personal");
+    }
+
+    @Test
+    public void givenTransactionList_whenSummarizeByCategory_ShouldSumEachCategory(){
+        //given
+        List<StatementTransaction> transactions = new ArrayList<>();
+        //UNCATEGORIZED
+        transactions.add(StatementTransaction.builder().statementId(1L).transactionDate("28/11/2020").description("Saldo Anterior").documentId("0").transactionValue(1000.00).build());
+        transactions.add(StatementTransaction.builder().statementId(1L).transactionDate("31/12/2020").description("S A L D O").documentId("0").transactionValue(4000.00).build());
+        //INCOME
+        transactions.add(StatementTransaction.builder().statementId(1L).transactionDate("03/12/2020").description("Benefício INSS").documentId("1").transactionValue(50000.00).category("income").build());
+        transactions.add(StatementTransaction.builder().statementId(1L).transactionDate("04/12/2020").description("TED-Crédito em Conta").documentId("2").transactionValue(10000.00).category("income").build());
+        //HOME
+        transactions.add(StatementTransaction.builder().statementId(1L).transactionDate("07/12/2020").description("BB Seguro Auto - SEGURO AUTO BB/MAPFRE").documentId("3").transactionValue(-300.00).category("home").build());
+        transactions.add(StatementTransaction.builder().statementId(1L).transactionDate("08/12/2020").description("SKY SERV").documentId("4").transactionValue(-200.00).category("home").build());
+        //SUPERMARKET
+        transactions.add(StatementTransaction.builder().statementId(1L).transactionDate("28/12/2020").description("Compra com Cartão - SUPERMERCADO ESPERAN").documentId("7").transactionValue(-600.00).category("supermarket").build());
+        transactions.add(StatementTransaction.builder().statementId(1L).transactionDate("31/12/2020").description("Compra com Cartão - 31/12 12:29 SUPERMERC GUANABARA").documentId("7").transactionValue(-600.00).category("supermarket").build());
+        //PERSONAL
+        transactions.add(StatementTransaction.builder().statementId(1L).transactionDate("21/12/2020").description("Compra com Cartão - 19/12 12:36 DRICA MODA INTIMA LT").documentId("6").transactionValue(-100.00).category("personal").build());
+        transactions.add(StatementTransaction.builder().statementId(1L).transactionDate("31/12/2020").description("Compra com Cartão - 19/12 12:36 CAROL MODA PRAIA LT").documentId("8").transactionValue(-100.00).category("personal").build());
+
+        Statement statement = Statement.builder().transactions(transactions).build();
+
+        //when
+        Map<String, Double> summary = statementService.summarizeByCategory(statement);
+
+        //then
+        Assertions.assertEquals(60000.00, summary.get("income"), 0);
+        Assertions.assertEquals(-500.00, summary.get("home"), 0);
         Assertions.assertEquals(-1200.00, summary.get("supermarket"), 0);
+        Assertions.assertEquals(-200.00, summary.get("personal"), 0);
     }
 
     @Test
@@ -185,8 +229,8 @@ public class StatementServiceTest {
         given(statementTransactionRepository.save(any(StatementTransaction.class))).willReturn(StatementTransaction.builder().id(1L).build());
 
         List<StatementTransaction> transactions = new ArrayList<>();
-        transactions.add(StatementTransaction.builder().id(1).build());
-        transactions.add(StatementTransaction.builder().id(2).build());
+        transactions.add(StatementTransaction.builder().id(1L).build());
+        transactions.add(StatementTransaction.builder().id(2L).build());
 
         //when
         statementService.save(1, 1, "filename.csv", transactions);
@@ -206,8 +250,8 @@ public class StatementServiceTest {
         given(statementTransactionRepository.save(any(StatementTransaction.class))).willReturn(StatementTransaction.builder().id(1L).build());
 
         List<StatementTransaction> transactions = new ArrayList<>();
-        transactions.add(StatementTransaction.builder().id(1).build());
-        transactions.add(StatementTransaction.builder().id(2).build());
+        transactions.add(StatementTransaction.builder().id(1L).build());
+        transactions.add(StatementTransaction.builder().id(2L).build());
 
         //when
         statementService.save(1, 1, "filename.csv", transactions);
@@ -219,6 +263,7 @@ public class StatementServiceTest {
         verify(statementTransactionRepository, times(2)).save(any(StatementTransaction.class));
     }
 
+    /*
     @Test
     public void givenException_whenSave_shouldRollback(){
         //given
@@ -228,8 +273,8 @@ public class StatementServiceTest {
         given(statementTransactionRepository.save(any(StatementTransaction.class))).willThrow(SQLException.class);
 
         List<StatementTransaction> transactions = new ArrayList<>();
-        transactions.add(StatementTransaction.builder().id(1).build());
-        transactions.add(StatementTransaction.builder().id(2).build());
+        transactions.add(StatementTransaction.builder().id(1L).build());
+        transactions.add(StatementTransaction.builder().id(2L).build());
 
         //when
         statementService.save(1, 1, "filename.csv", transactions);
@@ -237,5 +282,5 @@ public class StatementServiceTest {
         //then
 
 
-    }
+    }*/
 }

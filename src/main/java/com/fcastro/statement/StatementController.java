@@ -1,12 +1,9 @@
 package com.fcastro.statement;
 
 import com.fcastro.statement.transaction.StatementTransaction;
-import com.fcastro.statement.transaction.StatementTransactionView;
 import lombok.AllArgsConstructor;
-import org.modelmapper.ModelMapper;
 import org.springframework.hateoas.CollectionModel;
-import org.springframework.hateoas.EntityModel;
-import org.springframework.hateoas.IanaLinkRelations;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,39 +13,35 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.List;
-import java.util.stream.Collectors;
-
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+import java.util.Map;
 
 @RestController
 @RequestMapping("api/v1/statements")
 @AllArgsConstructor
 public class StatementController {
 
-    private final ModelMapper modelMapper;
-    private final StatementViewAssembler assembler;
-    private final StatementUploadViewModelAssembler uploadResponseAssembler;
+    private final StatementModelAssembler assembler;
     private final StatementService service;
 
     @GetMapping
-    CollectionModel<EntityModel<StatementView>> all() {
+    ResponseEntity<CollectionModel<StatementModel>> all(@RequestParam(required = true) Long clientId) {
 
-        List<EntityModel<StatementView>> resources = service.findAll().stream()
-                .map(resource -> {
-                        return assembler.toModel(convertToModel(resource));
-                })
-                .collect(Collectors.toList());
+        List<Statement> statements = service.findAllByClientId(clientId);
 
-        return CollectionModel.of(resources, linkTo(methodOn(StatementController.class).all()).withSelfRel());
+        return new ResponseEntity<>(
+                assembler.toCollectionModel(statements),
+                HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
-    EntityModel<StatementView> one(@PathVariable Long id) {
+    ResponseEntity<StatementModel> one(@PathVariable Long id) {
 
-        Statement resource = service.findById(id);
+        Statement statement = service.findById(id);
 
-        return assembler.toModel(convertToModel(resource));
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(assembler.toModel(statement));
+
     }
 
     @DeleteMapping("/{id}")
@@ -71,29 +64,16 @@ public class StatementController {
             throw new IllegalStateException("File [" + file.getName() + "] could not be read.");
         }
 
-        StatementUpload uploadDto = service.processStatementFile(clientId, bankId, file.getName(), reader);
-        Statement statement = service.save(clientId, bankId, file.getName(), uploadDto.getTransactions());
-        uploadDto.setStatement(statement);
+        List<StatementTransaction> transactions = service.processStatementFile(clientId, bankId, file.getName(), reader);
+        Statement statement = service.save(clientId, bankId, file.getName(), transactions);
+        Map<String, Double> summary = service.summarizeByCategory(statement);
 
-        EntityModel<StatementUploadView> entityModel =  uploadResponseAssembler.toModel(convertToModel(uploadDto));
+        StatementModel statementModel = assembler.toModel(statement);
+        statementModel.setSummary(summary);
 
-        return ResponseEntity.created(entityModel.getRequiredLink(IanaLinkRelations.SELF).toUri())
-                .body(entityModel);
-
-    }
-
-    private StatementView convertToModel(Statement obj) {
-        return modelMapper.map(obj, StatementView.class);
-    }
-
-    private List<StatementTransactionView> convertToModel(List<StatementTransaction> list) {
-        return list.stream().map(transaction -> {
-            return modelMapper.map(transaction, StatementTransactionView.class);
-        }).collect(Collectors.toList());
-    }
-
-    private StatementUploadView convertToModel(StatementUpload obj) {
-        return modelMapper.map(obj, StatementUploadView.class);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(statementModel);
     }
 }
 

@@ -19,7 +19,7 @@ public class BankRepositoryIntegrationTest {
     private BankRepository repository;
 
     @Test
-    void testExample() throws Exception {
+    void givenBank_shouldReturnBankFromDatabase() throws Exception {
         //given
         Bank bank = this.entityManager.persistFlushFind(Bank.builder().name("Itaú").build());
 

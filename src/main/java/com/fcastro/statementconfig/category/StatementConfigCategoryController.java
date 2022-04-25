@@ -1,81 +1,58 @@
 package com.fcastro.statementconfig.category;
 
 import com.fcastro.exception.ResourceNotFoundException;
-import com.fcastro.statementconfig.StatementConfig;
-import com.fcastro.statementconfig.StatementConfigRepository;
 import lombok.AllArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.hateoas.CollectionModel;
-import org.springframework.hateoas.EntityModel;
-import org.springframework.hateoas.IanaLinkRelations;
-import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
-
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @RestController
-@RequestMapping("api/v1/configurations/{statementConfigId}/categories")
+@RequestMapping("api/v1/configurations/{configId}/categories")
 @AllArgsConstructor
 public class StatementConfigCategoryController {
 
-    private final StatementConfigRepository statementConfigRepository;
     private final StatementConfigCategoryRepository repository;
-    private final StatementConfigCategoryViewAssembler assembler;
+    private final StatementConfigCategoryModelAssembler assembler;
     private final ModelMapper modelMapper;
 
     @GetMapping
-    CollectionModel<EntityModel<StatementConfigCategoryView>> all(@PathVariable Long statementConfigId) {
+    public ResponseEntity<CollectionModel<StatementConfigCategoryModel>> all(@PathVariable Long configId) {
 
-        statementConfigRepository.findById(statementConfigId)
-                .orElseThrow(() -> new ResourceNotFoundException(StatementConfig.class, statementConfigId));
+        List<StatementConfigCategory> categories = repository.findAllByStatementConfigId(configId);
 
-        List<EntityModel<StatementConfigCategoryView>> categories = repository.findAllByStatementConfigId(statementConfigId).stream()
-                .map(resource -> {
-                    return assembler.toModel(convertToDTO(resource));
-                })
-                .collect(Collectors.toList());
-
-        return CollectionModel.of(categories, WebMvcLinkBuilder.linkTo(methodOn(StatementConfigCategoryController.class).all(statementConfigId)).withSelfRel());
+        return new ResponseEntity<>(
+                assembler.toCollectionModel(categories),
+                HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
-    EntityModel<StatementConfigCategoryView> one(@PathVariable Long statementConfigId, @PathVariable Long id) {
+    public ResponseEntity<StatementConfigCategoryModel> one(@PathVariable Long configId, @PathVariable Long id) {
 
-        statementConfigRepository.findById(statementConfigId)
-                .orElseThrow(() -> new ResourceNotFoundException(StatementConfig.class, statementConfigId));
-
-        StatementConfigCategory category = repository.findByStatementConfigIdAndId(statementConfigId, id)
+        return repository.findByStatementConfigIdAndId(configId, id)
+                .map(assembler::toModel)
+                .map(ResponseEntity::ok)
                 .orElseThrow(() -> new ResourceNotFoundException(StatementConfigCategory.class, id));
-
-        return assembler.toModel(convertToDTO(category));
     }
 
     @PostMapping
-    ResponseEntity<?> create(@PathVariable Long statementConfigId, @RequestBody StatementConfigCategory newCategory) {
+    ResponseEntity<StatementConfigCategoryModel> create(@PathVariable Long configId, @RequestBody StatementConfigCategoryModel newCategory) {
 
-        statementConfigRepository.findById(statementConfigId)
-                .orElseThrow(() -> new ResourceNotFoundException(StatementConfig.class, statementConfigId));
+        newCategory.setStatementConfigId(configId);
+        StatementConfigCategory category = repository.save(convertToObject(newCategory));
 
-        newCategory.setStatementConfigId(statementConfigId);
-        StatementConfigCategory category = repository.save(newCategory);
-
-        EntityModel<StatementConfigCategoryView> entityModel =  assembler.toModel(convertToDTO(category));
-
-        return ResponseEntity.created(entityModel.getRequiredLink(IanaLinkRelations.SELF).toUri())
-                .body(entityModel);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(assembler.toModel(category));
     }
 
     @PutMapping("/{id}")
-    ResponseEntity<?> replace(@PathVariable Long statementConfigId, @PathVariable Long id, @RequestBody StatementConfigCategory newCategory) {
+    ResponseEntity<StatementConfigCategoryModel> replace(@PathVariable Long configId, @PathVariable Long id, @RequestBody StatementConfigCategoryModel newCategory) {
 
-        statementConfigRepository.findById(statementConfigId)
-                .orElseThrow(() -> new ResourceNotFoundException(StatementConfig.class, statementConfigId));
-
-        StatementConfigCategory updatedResource = repository.findByStatementConfigIdAndId(statementConfigId, id)
+        StatementConfigCategory updatedCategory = repository.findByStatementConfigIdAndId(configId, id)
                 .map(resource -> {
                     resource.setName(newCategory.getName());
                     resource.setTags(newCategory.getTags());
@@ -83,24 +60,22 @@ public class StatementConfigCategoryController {
                 })
                 .orElseGet(() -> {
                     newCategory.setId(id);
-                    return repository.save(newCategory);
+                    return repository.save(convertToObject(newCategory));
                 });
 
-        EntityModel<StatementConfigCategoryView> entityModel = assembler.toModel(convertToDTO(updatedResource));
-
         return ResponseEntity
-                .created(entityModel.getRequiredLink(IanaLinkRelations.SELF).toUri())
-                .body(entityModel);
+                .status(HttpStatus.CREATED)
+                .body(assembler.toModel(updatedCategory));
     }
 
     @DeleteMapping("/{id}")
-    ResponseEntity<?> delete(@PathVariable Long statementConfigId, @PathVariable Long id) {
-        repository.deleteByStatementConfigIdAndId(statementConfigId, id);
+    ResponseEntity<?> delete(@PathVariable Long configId, @PathVariable Long id) {
+        repository.deleteByStatementConfigIdAndId(configId, id);
 
         return ResponseEntity.noContent().build();
     }
 
-    private StatementConfigCategoryView convertToDTO(StatementConfigCategory obj){
-        return modelMapper.map(obj, StatementConfigCategoryView.class);
+    private StatementConfigCategory convertToObject(StatementConfigCategoryModel obj){
+        return modelMapper.map(obj, StatementConfigCategory.class);
     }
 }

@@ -1,9 +1,11 @@
 package com.fcastro.statement;
 
+import com.fcastro.statement.transaction.StatementTransaction;
 import lombok.*;
 
 import javax.persistence.*;
 import java.time.Instant;
+import java.util.List;
 
 @Entity
 @Table(name="STATEMENT")
@@ -25,4 +27,7 @@ public class Statement {
     private Long clientId;
 
     private Long bankId;
+
+    @OneToMany(mappedBy="statement")
+    private List<StatementTransaction> transactions;
 }

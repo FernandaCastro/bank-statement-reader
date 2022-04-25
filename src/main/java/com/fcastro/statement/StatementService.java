@@ -2,12 +2,12 @@ package com.fcastro.statement;
 
 import com.fcastro.exception.ParseCSVException;
 import com.fcastro.exception.ResourceNotFoundException;
+import com.fcastro.statement.transaction.StatementTransaction;
+import com.fcastro.statement.transaction.StatementTransactionRepository;
 import com.fcastro.statementconfig.StatementConfig;
 import com.fcastro.statementconfig.StatementConfigRepository;
 import com.fcastro.statementconfig.category.StatementConfigCategory;
 import com.fcastro.statementconfig.category.StatementConfigCategoryRepository;
-import com.fcastro.statement.transaction.StatementTransaction;
-import com.fcastro.statement.transaction.StatementTransactionRepository;
 import com.opencsv.bean.CsvToBean;
 import com.opencsv.bean.CsvToBeanBuilder;
 import com.opencsv.bean.HeaderColumnNameTranslateMappingStrategy;
@@ -18,10 +18,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.time.Clock;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.summingDouble;
 
 @Service
 @AllArgsConstructor
@@ -32,7 +33,7 @@ public class StatementService {
     private final StatementConfigRepository statementConfigRepository;
     private final StatementConfigCategoryRepository statementCategoryConfigRepository;
 
-    public StatementUpload processStatementFile(long clientId, long bankId, String filename, BufferedReader reader) {
+    public List<StatementTransaction> processStatementFile(long clientId, long bankId, String filename, BufferedReader reader) {
 
         StatementConfig statementConfig = statementConfigRepository.findByBankIdAndClientId(bankId, clientId);
         if (statementConfig==null){
@@ -40,14 +41,9 @@ public class StatementService {
         }
 
         List<StatementTransaction> transactions = read(statementConfig, reader);
-        Map<String, Double> sumCategories = categorize(statementConfig, transactions);
-        //Statement statement = save(clientId, bankId, filename, transactions);
+        transactions = categorize(statementConfig, transactions);
 
-        return StatementUpload.builder()
-                //.statement(convertToModel(statement))
-                .transactions(transactions)
-                .summary(sumCategories)
-                .build();
+        return transactions;
     }
 
     protected List<StatementTransaction> read(StatementConfig statementConfig, BufferedReader reader) {
@@ -76,26 +72,24 @@ public class StatementService {
         }
     }
 
-    protected Map<String, Double> categorize(StatementConfig statementConfig, List<StatementTransaction> transactions) {
+    protected List<StatementTransaction> categorize(StatementConfig statementConfig, List<StatementTransaction> transactions) {
 
         List<StatementConfigCategory> statementCategories = statementCategoryConfigRepository.findAllByStatementConfigId(statementConfig.getId());
-        if (statementCategories == null || statementCategories.isEmpty())
-            return null;
 
-        Map<String, Double> sumCategories = new HashMap<>();
-        for (StatementConfigCategory statementCategoryConfig : statementCategories) {
-            List<String> tags = Arrays.asList(statementCategoryConfig.getTags().trim().toUpperCase().split("\\s*,\\s*").clone());
+        if (statementCategories != null) {
 
-            sumCategories.put(statementCategoryConfig.getName(),
-                    transactions.stream()
-                            .filter(p -> p.getDescription() != null && !p.getDescription().isBlank())
-                            .filter(p -> p.getCategory() == null || p.getCategory().isBlank())
-                            .filter(p -> this.contains(p.getDescription(), tags))
-                            .peek(p -> p.setCategory(statementCategoryConfig.getName()))
-                            .mapToDouble(StatementTransaction::getTransactionValue).sum());
+            for (StatementConfigCategory statementCategoryConfig : statementCategories) {
+                List<String> tags = Arrays.asList(statementCategoryConfig.getTags().trim().toUpperCase().split("\\s*,\\s*").clone());
+
+                transactions.stream()
+                        .filter(p -> p.getDescription() != null && !p.getDescription().isBlank())
+                        .filter(p -> p.getCategory() == null || p.getCategory().isBlank())
+                        .filter(p -> this.contains(p.getDescription(), tags))
+                        .peek(p -> p.setCategory(statementCategoryConfig.getName()))
+                        .collect(Collectors.toList());
+            }
         }
-
-        return sumCategories;
+        return transactions;
     }
 
     @Transactional
@@ -119,9 +113,10 @@ public class StatementService {
             statementTransactionRepository.deleteAllByStatementId(statement.getId());
         }
 
+        statement.setTransactions(new ArrayList<>());
         for (StatementTransaction transaction : transactions) {
             transaction.setStatementId(statement.getId());
-            statementTransactionRepository.save(transaction);
+            statement.getTransactions().add(statementTransactionRepository.save(transaction));
         }
         return statement;
     }
@@ -135,8 +130,22 @@ public class StatementService {
         }
     }
 
-    public List<Statement> findAll() {
-        return statementRepository.findAll();
+    protected Map<String, Double> summarizeByCategory(Statement statement){
+        Map<String, Double> sumCategories = new HashMap<>();
+
+        if (statement.getTransactions() == null) {
+            return sumCategories;
+        }
+
+        sumCategories = statement.getTransactions().stream()
+                .filter(t -> t.getCategory() != null)
+                .collect(groupingBy(StatementTransaction::getCategory, summingDouble(StatementTransaction::getTransactionValue)));
+
+        return sumCategories;
+    }
+
+    public List<Statement> findAllByClientId(Long clientId) {
+        return statementRepository.findAllByClientId(clientId);
     }
 
     public Statement findById(Long id) {

@@ -1,5 +1,6 @@
 package com.fcastro.statement.transaction;
 
+import com.fcastro.statement.Statement;
 import lombok.*;
 import org.springframework.format.annotation.NumberFormat;
 
@@ -15,9 +16,9 @@ public class StatementTransaction {
 
     @Id
     @GeneratedValue (strategy= GenerationType.IDENTITY)
-    private long id;
+    private Long id;
 
-    private long statementId;
+    private Long statementId;
 
     //@Temporal(TemporalType.DATE)
     @Column(nullable = false)
@@ -28,9 +29,13 @@ public class StatementTransaction {
 
     @NumberFormat(pattern = "#.##")
     @Column(nullable = false)
-    private double transactionValue;
+    private Double transactionValue;
 
     private String documentId;
 
     private String category;
+
+    @ManyToOne
+    @JoinColumn(name="statementId", insertable = false, updatable = false)
+    private Statement statement;
 }
