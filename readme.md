@@ -1,4 +1,4 @@
-vn clean package## Bank Statement Reader
+## Bank Statement Reader
 The purpose of this project is to practice how to create and test a simple REST webservice.
 
 This project uses:
@@ -150,5 +150,5 @@ Transactions are appended.
             "href": "http://localhost:8080/api/v1/statements/1"
         }
     }
-}`
-``
+}
+```
