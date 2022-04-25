@@ -1,4 +1,4 @@
-vn clean package## Bank Statement Reader
+## Bank Statement Reader
 The purpose of this project is to practice how to create and test a simple REST webservice.
 
 This project uses:
@@ -76,9 +76,9 @@ Configuration Category
 ## Statement CVS File Sample
 
 ````
-"Data","Dependencia Origem","Histórico","Data do Balancete","Número do documento","Valor",
+"Data","Dependencia Origem","HistÃ³rico","Data do Balancete","NÃºmero do documento","Valor",
 "28/10/2020","","Saldo Anterior","","0","20750.31",
-"05/11/2020","","Benefício INSS","","196324558","59397.51",
+"05/11/2020","","BenefÃ­cio INSS","","196324558","59397.51",
 ````
 
 ## Statement Configuration Sample
@@ -88,15 +88,15 @@ Configuration Categories are appended.
     "id": 1,
     "clientId": 1,
     "bankId": 1,
-    "descriptionField": "Histórico",
-    "documentIdField": "Número do documento",
+    "descriptionField": "HistÃ³rico",
+    "documentIdField": "NÃºmero do documento",
     "transactionDateField": "Data",
     "transactionValueField": "Valor",
     "categories": [
         {
             "id": 1,
             "name": "income",
-            "tags": "Benefício, Crédito em conta",
+            "tags": "BenefÃ­cio, CrÃ©dito em conta",
             "_links": {
                 "self": {
                     "href": "http://localhost:8080/api/v1/configurations/1/categories/1"
@@ -134,7 +134,7 @@ Transactions are appended.
         {
             "id": 2,
             "transactionDate": "05/11/2020",
-            "description": "Benefício INSS",
+            "description": "BenefÃ­cio INSS",
             "transactionValue": 59397.51,
             "documentId": "196324558",
             "category": "income",
