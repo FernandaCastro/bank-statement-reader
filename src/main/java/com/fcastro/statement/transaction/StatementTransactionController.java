@@ -5,12 +5,10 @@ import lombok.AllArgsConstructor;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("api/v1/statements/{statementId}/transactions")
@@ -32,9 +30,17 @@ public class StatementTransactionController {
     }
 
     @GetMapping
-    public ResponseEntity<CollectionModel<StatementTransactionModel>> all(@PathVariable Long statementId) {
+    public ResponseEntity<CollectionModel<StatementTransactionModel>> all(@PathVariable Long statementId, @RequestParam(required = false) Map<String, String> allParams) {
 
-        List<StatementTransaction> transactions = repository.findAllByStatementId(statementId);
+        List<StatementTransaction> transactions = null;
+
+        if (allParams != null && !allParams.isEmpty()){
+            //transactionDate, description, transactionValue, documentId, category
+            transactions = repository.findAllByStatementIdAndAllParams(statementId, allParams);
+
+        }else{
+            transactions = repository.findAllByStatementId(statementId);
+        }
 
         return new ResponseEntity<>(
                 assembler.toCollectionModel(transactions),

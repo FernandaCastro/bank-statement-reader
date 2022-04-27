@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface StatementTransactionRepository extends JpaRepository<StatementTransaction, Long> {
+public interface StatementTransactionRepository extends JpaRepository<StatementTransaction, Long>, StatementTransactionRepositoryCustom {
 
     @Query("select t from StatementTransaction t where t.statementId = :statementId")
     List<StatementTransaction> findAllByStatementId(@Param("statementId") long statementId);

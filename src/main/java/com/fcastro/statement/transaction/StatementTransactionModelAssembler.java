@@ -44,7 +44,7 @@ public class StatementTransactionModelAssembler extends RepresentationModelAssem
             statementId = entities.iterator().next().getStatement().getId();
         }
 
-        models.add(linkTo(methodOn(StatementConfigCategoryController.class).all(statementId)).withSelfRel());
+        models.add(linkTo(methodOn(StatementTransactionController.class).all(statementId, null)).withSelfRel());
 
         return models;
     }

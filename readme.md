@@ -14,7 +14,7 @@ This project uses:
 - Summarizes the categories
 
 ## How to build and run
-The project can be compiled with JDK 8 and above `javac`.
+The project can be compiled with JDK 11 and above `javac`.
 
 To compile just do `mvn clean package`.
 
