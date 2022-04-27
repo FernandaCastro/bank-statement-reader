@@ -1,9 +1,10 @@
 package com.fcastro.statement.transaction;
 
+import org.springframework.util.MultiValueMap;
+
 import java.util.List;
-import java.util.Map;
 
 public interface StatementTransactionRepositoryCustom {
 
-    List<StatementTransaction> findAllByStatementIdAndAllParams(Long statementId, Map<String, String> params);
+    List<StatementTransaction> findAllByStatementIdAndAllParams(Long statementId, MultiValueMap<String, String> params);
 }

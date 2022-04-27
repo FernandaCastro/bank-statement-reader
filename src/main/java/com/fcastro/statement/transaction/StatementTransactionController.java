@@ -5,10 +5,10 @@ import lombok.AllArgsConstructor;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("api/v1/statements/{statementId}/transactions")
@@ -30,9 +30,9 @@ public class StatementTransactionController {
     }
 
     @GetMapping
-    public ResponseEntity<CollectionModel<StatementTransactionModel>> all(@PathVariable Long statementId, @RequestParam(required = false) Map<String, String> allParams) {
+    public ResponseEntity<CollectionModel<StatementTransactionModel>> all(@PathVariable Long statementId, @RequestParam(required = false) MultiValueMap<String, String> allParams) {
 
-        List<StatementTransaction> transactions = null;
+        List<StatementTransaction> transactions;
 
         if (allParams != null && !allParams.isEmpty()){
             //transactionDate, description, transactionValue, documentId, category

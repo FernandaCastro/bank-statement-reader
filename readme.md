@@ -9,9 +9,10 @@ This project uses:
  - SpringBoot 2.5.13
 
 ### What does this project do?
-- Reads banking transactions from a CSV file, 
+- Reads banking transactions from a CSV file (samples under resources/csv-files), 
 - Categorizes the transactions based on pre-defined configuration
-- Summarizes the categories
+- Search criteria for Transactions
+- Summarizes Transactions by category
 
 ## How to build and run
 The project can be compiled with JDK 11 and above `javac`.

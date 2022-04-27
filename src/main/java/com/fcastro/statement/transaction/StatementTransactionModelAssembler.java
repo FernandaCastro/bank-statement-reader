@@ -1,6 +1,5 @@
 package com.fcastro.statement.transaction;
 
-import com.fcastro.statementconfig.category.StatementConfigCategoryController;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.server.mvc.RepresentationModelAssemblerSupport;
 import org.springframework.stereotype.Component;
@@ -21,7 +20,7 @@ public class StatementTransactionModelAssembler extends RepresentationModelAssem
         StatementTransactionModel model = instantiateModel(entity);
 
         model.add(linkTo(
-                methodOn(StatementConfigCategoryController.class).one(entity.getStatement().getId(), entity.getId()))
+                methodOn(StatementTransactionController.class).one(entity.getStatement().getId(), entity.getId()))
                 .withSelfRel());
 
         model.setId(entity.getId());

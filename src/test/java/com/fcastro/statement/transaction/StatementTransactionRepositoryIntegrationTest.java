@@ -6,9 +6,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -72,7 +76,7 @@ public class StatementTransactionRepositoryIntegrationTest {
     }
 
     @Test
-    void findAllByStatementIdAndAllParams_thenReturnsStatementTransactionList(){
+    void whenFindAllByStatementIdAndAllParams_thenReturnsStatementTransactionList(){
         //given
         Statement statement = entityManager.persistFlushFind(Statement.builder().clientId(1L).bankId(1L).filename("statement.csv").processedAt(Instant.now()).build());
         StatementTransaction transaction1 = StatementTransaction.builder().statementId(statement.getId())
@@ -92,25 +96,26 @@ public class StatementTransactionRepositoryIntegrationTest {
         StatementTransaction transaction3 = StatementTransaction.builder().statementId(statement.getId())
                 .transactionDate("02/01/2022")
                 .transactionValue(2.00)
-                .description("Foo2")
+                .description("OtherFoo2")
                 .documentId("DOC2")
                 .category("creditcard")
                 .build();
         Arrays.asList(transaction1, transaction2, transaction3).forEach(entityManager::persistAndFlush);
 
-        Map<String, String> params = new HashMap<>();
-        params.put("description", "Foo");
-        params.put("category", "home");
-        params.put("transactionValue", "1.00");
-        params.put("transactionDate", "01/01/2022");
+        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+        params.put("description", Arrays.asList("Foo", "Other"));
+        params.put("category", Arrays.asList("home", "creditcard"));
+        params.put("transactionDate", Arrays.asList("01/01/2022", "02/01/2022"));
+        params.put("transactionValue", Arrays.asList("1.00", "2.00"));
 
         //when
         List<StatementTransaction> transactions = statementTransactionRepository.findAllByStatementIdAndAllParams(1L, params);
 
         //then
         assertThat(transactions).isNotNull();
-        assertThat(transactions).hasSize(2);
+        assertThat(transactions).hasSize(3);
         assertThat(transactions.get(0).getDocumentId()).isEqualTo("DOC1");
         assertThat(transactions.get(1).getDocumentId()).isEqualTo("DOC1.5");
+        assertThat(transactions.get(2).getDocumentId()).isEqualTo("DOC2");
     }
 }
